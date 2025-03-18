@@ -9,6 +9,8 @@ import AdoptionRequest from './pages/adoptionRequest';
 import PetsAdoption from './pages/petsAdoption';
 import RescueRequest from './pages/rescueRequest';
 import History from './pages/history';
+import UserProfile from './pages/UserProfile';
+import ViewProfile from './pages/VIewProfile';
 
 function App() {
   const navigate = useNavigate();
@@ -29,7 +31,9 @@ function App() {
       <Route path="/petsAdoption" element={<PetsAdoption />} /> 
       <Route path="/AdoptionRequest" element={<AdoptionRequest />} /> 
       <Route path="/RescueRequest" element={<RescueRequest />} /> 
-      <Route path="/History" element={<History />} /> 
+      <Route path="/History" element={<History />} />
+      <Route path="/profile/:email" element={<UserProfile />} />
+      <Route path="/view-profile/:collectionName/:id" element={<ViewProfile />} />
     </Routes>
   );
 }

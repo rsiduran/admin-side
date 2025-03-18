@@ -1,11 +1,17 @@
 import React, { useState, useEffect } from "react";
 import AppSideBar from "../components/AppSideBar";
 import { db } from "../firebase";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, addDoc } from "firebase/firestore";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEye, faEdit } from "@fortawesome/free-solid-svg-icons";
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { useNavigate } from "react-router-dom";
 
+const storage = getStorage();
 const PetsAdoption = () => {
+  const navigate = useNavigate();
   const [showModal, setShowModal] = useState(false); // Modal visibility state
   const [formData, setFormData] = useState({
     name: "",
@@ -31,28 +37,29 @@ const PetsAdoption = () => {
   // Handle file selection
   const handleFileChange = (e) => {
     const { name, files } = e.target;
-    setFormData({
-      ...formData,
-      [name]: files.length > 1 ? [...files] : files[0],
-    });
+    setFormData((prev) => ({
+      ...prev,
+      [name]: name === "additionalPhotos" ? Array.from(files) : files[0], // Convert FileList to array
+    }));
+  };
+
+  const uploadFile = async (file, folder) => {
+    const storageRef = ref(storage, `${folder}/${file.name}`);
+    const snapshot = await uploadBytes(storageRef, file);
+    const downloadURL = await getDownloadURL(snapshot.ref); // Get the URL
+    return downloadURL;
   };
 
   // Handle form submission
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      // Upload files to Firebase Storage (if any)
-      const uploadFile = async (file, folder) => {
-        const fileRef = ref(storage, `${folder}/${file.name}`);
-        await uploadBytes(fileRef, file);
-        return fileRef.fullPath;
-      };
+  e.preventDefault();
+  try {
+    const petPictureURL = formData.petPicture
+      ? await uploadFile(formData.petPicture, "petPictures")
+      : null;
 
-      const petPicturePath = formData.petPicture
-        ? await uploadFile(formData.petPicture, "petPicture")
-        : null;
-
-      const additionalPhotosPaths = formData.additionalPhotos.length
+    const additionalPhotosURLs =
+      formData.additionalPhotos.length > 0
         ? await Promise.all(
             formData.additionalPhotos.map((file) =>
               uploadFile(file, "additionalPhotos")
@@ -60,56 +67,56 @@ const PetsAdoption = () => {
           )
         : [];
 
-      const medicalRecordsPath = formData.medicalRecords
-        ? await uploadFile(formData.medicalRecords, "medical")
-        : null;
+    const medicalRecordsURL = formData.medicalRecords
+      ? await uploadFile(formData.medicalRecords, "medicalRecords")
+      : null;
 
-      const spayCertificatePath = formData.spayCertificate
-        ? await uploadFile(formData.spayCertificate, "spay")
-        : null;
+    const spayCertificateURL = formData.spayCertificate
+      ? await uploadFile(formData.spayCertificate, "spayCertificates")
+      : null;
 
-      const vaccinationRecordsPath = formData.vaccinationRecords
-        ? await uploadFile(formData.vaccinationRecords, "vaccination")
-        : null;
+    const vaccinationRecordsURL = formData.vaccinationRecords
+      ? await uploadFile(formData.vaccinationRecords, "vaccinationRecords")
+      : null;
 
-      // Save data to Firestore
-      const docRef = await addDoc(collection(db, "adoption"), {
-        name: formData.name,
-        age: formData.age,
-        breed: formData.breed,
-        petPicture: petPicturePath,
-        additionalPhotos: additionalPhotosPaths,
-        description: formData.description,
-        gender: formData.gender,
-        medicalRecords: medicalRecordsPath,
-        spayCertificate: spayCertificatePath,
-        vaccinationRecords: vaccinationRecordsPath,
-        size: formData.size,
-        petType: formData.petType,
-        createdAt: new Date(),
-      });
+    // Save data to Firestore
+    await addDoc(collection(db, "adoption"), {
+      name: formData.name,
+      age: formData.age,
+      breed: formData.breed,
+      petPicture: petPictureURL,
+      additionalPhotos: additionalPhotosURLs,
+      description: formData.description,
+      gender: formData.gender,
+      medicalRecords: medicalRecordsURL,
+      spayCertificate: spayCertificateURL,
+      vaccinationRecords: vaccinationRecordsURL,
+      size: formData.size,
+      petType: formData.petType,
+      timestamp: new Date(),
+    });
 
-      toast.success("Pet added successfully!");
-      setShowModal(false);
-      setFormData({
-        name: "",
-        age: "",
-        breed: "",
-        petPicture: null,
-        additionalPhotos: [],
-        description: "",
-        gender: "Male",
-        medicalRecords: null,
-        spayCertificate: null,
-        vaccinationRecords: null,
-        size: "Small",
-        petType: "Dog",
-      }); // Reset form
-    } catch (error) {
-      console.error("Error adding pet:", error);
-      toast.error("Error adding pet. Please try again.");
-    }
-  };
+    toast.success("Pet added successfully!");
+    setShowModal(false);
+    setFormData({
+      name: "",
+      age: "",
+      breed: "",
+      petPicture: null,
+      additionalPhotos: [],
+      description: "",
+      gender: "Male",
+      medicalRecords: null,
+      spayCertificate: null,
+      vaccinationRecords: null,
+      size: "Small",
+      petType: "Dog",
+    });
+  } catch (error) {
+    console.error("Error adding pet:", error);
+    toast.error("Error adding pet. Please try again.");
+  }
+};
 
   const [adoptionRecords, setAdoptionRecords] = useState([]);
   const [adoptedRecords, setAdoptedRecords] = useState([]);

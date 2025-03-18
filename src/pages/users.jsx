@@ -2,12 +2,18 @@ import React, { useState, useEffect } from 'react';
 import AppSideBar from '../components/AppSideBar';
 import { db } from "../firebase";
 import { collection, getDocs } from "firebase/firestore"
+import { useNavigate } from "react-router-dom";
 
 const Users = () => {
   const [users, setUsers] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const rowsPerPage = 8;
+  const navigate = useNavigate();
+
+  const handleViewProfile = (email) => {
+    navigate(`/profile/${encodeURIComponent(email)}`);
+  };
 
   // Fetch users from Firestore
   useEffect(() => {
@@ -83,9 +89,12 @@ const Users = () => {
                     <td className="px-6 py-3 text-left">{user.email}</td>
                     <td className="px-6 py-3 text-left">{user.createdAt}</td>
                     <td className="px-6 py-3 text-left">
-                      <button className="px-4 py-2 bg-blue-500 text-white rounded-lg shadow hover:bg-blue-600">
-                        View Profile
-                      </button>
+                    <button
+                      onClick={() => handleViewProfile(user.email)}
+                      className="px-4 py-2 bg-blue-500 text-white rounded-lg shadow hover:bg-blue-600"
+                    >
+                      View Profile
+                    </button>
                     </td>
                   </tr>
                 ))

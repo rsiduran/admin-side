@@ -5,7 +5,8 @@ import AppSideBar from '../components/AppSideBar';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { db } from "../firebase";
-import { collection, getDocs } from "firebase/firestore"
+import { collection, getDocs, orderBy, query, limit } from "firebase/firestore";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer } from 'recharts';
 
 
 const Dashboard = () => {
@@ -18,8 +19,9 @@ const Dashboard = () => {
     rescue: 0,
     adopted: 0,
   });
-  const [adoptionStats, setAdoptionStats] = useState({});
-  const [rescueStats, setRescueStats] = useState({});
+  const [adoptionStats, setAdoptionStats] = useState([]);
+  const [rescueStats, setRescueStats] = useState([]);
+  const [recentActivities, setRecentActivities] = useState([]);
 
   useEffect(() => {
     toast.success("Welcome back, Admin!");
@@ -49,25 +51,65 @@ const Dashboard = () => {
       }
     };
 
-    const fetchStatusCounts = async (colName, fieldName, setState) => {
+    const fetchRecentActivity = async () => {
       try {
-        const snapshot = await getDocs(collection(db, colName));
-        const statusCounts = {};
+        const collections = ["missing", "wandering", "found", "adoptionApplication", "rescue"];
+        let activities = [];
 
-        snapshot.docs.forEach((doc) => {
-          const status = doc.data()[fieldName];
-          statusCounts[status] = (statusCounts[status] || 0) + 1;
-        });
+        await Promise.all(
+          collections.map(async (col) => {
+            const q = query(collection(db, col), orderBy("timestamp", "desc"), limit(5));
+            const snapshot = await getDocs(q);
 
-        setState(statusCounts);
+            snapshot.docs.forEach((doc) => {
+              activities.push({
+                id: doc.id,
+                ...doc.data(),
+                collection: col,
+                timestamp: doc.data().timestamp
+                  ? new Date(doc.data().timestamp.seconds * 1000).toLocaleString()
+                  : "N/A",
+              });
+            });
+          })
+        );
+
+        // Sort all recent activities by timestamp
+        activities.sort((a, b) => (b.timestamp > a.timestamp ? 1 : -1));
+
+        // Limit to the five most recent
+        setRecentActivities(activities.slice(0, 5));
       } catch (error) {
-        console.error(`Error fetching ${colName} stats:`, error);
+        console.error("Error fetching recent activities:", error);
+      }
+    };
+
+    const fetchGraphData = async () => {
+      try {
+        const adoptionQuery = await getDocs(collection(db, "adoptionApplication"));
+        const rescueQuery = await getDocs(collection(db, "rescue"));
+        
+        const adoptionMap = {};
+        adoptionQuery.forEach((doc) => {
+          const status = doc.data().applicationStatus || "Unknown";
+          adoptionMap[status] = (adoptionMap[status] || 0) + 1;
+        });
+        setAdoptionStats(Object.entries(adoptionMap).map(([name, value]) => ({ name, value })));
+        
+        const rescueMap = {};
+        rescueQuery.forEach((doc) => {
+          const status = doc.data().reportStatus || "Unknown";
+          rescueMap[status] = (rescueMap[status] || 0) + 1;
+        });
+        setRescueStats(Object.entries(rescueMap).map(([name, value]) => ({ name, value })));
+      } catch (error) {
+        console.error("Error fetching graph data:", error);
       }
     };
 
     fetchCounts();
-    fetchStatusCounts("adoptionApplication", "applicationStatus", setAdoptionStats);
-    fetchStatusCounts("rescue", "reportStatus", setRescueStats);
+    fetchRecentActivity();
+    fetchGraphData();
   }, []);
   
   return (
@@ -80,12 +122,6 @@ const Dashboard = () => {
         {/* Header */}
         <header className="bg-white shadow-sm p-4 flex justify-between items-center">
           <h1 className="text-xl font-semibold text-gray-800">Dashboard</h1>
-          <button
-            onClick={() => handleLogout(navigate)}
-            className="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 transition duration-300"
-          >
-            Logout
-          </button>
         </header>
 
         {/* Main Area */}
@@ -101,32 +137,64 @@ const Dashboard = () => {
 
           </div>
 
+          <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="bg-white p-6 rounded-lg shadow-md">
+              <h2 className="text-lg font-semibold text-gray-700">Adoption Applications Status</h2>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={adoptionStats}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey="value" fill="#8884d8" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div className="bg-white p-6 rounded-lg shadow-md">
+              <h2 className="text-lg font-semibold text-gray-700">Rescue Reports Status</h2>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={rescueStats}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey="value" fill="#82ca9d" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
           {/* Additional Content */}
           <div className="mt-8">
-            <h2 className="text-xl font-semibold text-gray-800 mb-4">Recent Orders</h2>
+            <h2 className="text-xl font-semibold text-gray-800 mb-4">Recent Activity</h2>
             <div className="bg-white rounded-lg shadow-md overflow-hidden">
               <table className="min-w-full">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Order ID</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Customer</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Details</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Timestamp</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  <tr>
-                    <td className="px-6 py-4 text-sm text-gray-900">#1234</td>
-                    <td className="px-6 py-4 text-sm text-gray-900">John Doe</td>
-                    <td className="px-6 py-4 text-sm text-gray-900">Shipped</td>
-                    <td className="px-6 py-4 text-sm text-gray-900">$120.00</td>
-                  </tr>
-                  <tr>
-                    <td className="px-6 py-4 text-sm text-gray-900">#1235</td>
-                    <td className="px-6 py-4 text-sm text-gray-900">Jane Smith</td>
-                    <td className="px-6 py-4 text-sm text-gray-900">Processing</td>
-                    <td className="px-6 py-4 text-sm text-gray-900">$95.00</td>
-                  </tr>
+                  {recentActivities.length > 0 ? (
+                    recentActivities.map((activity) => (
+                      <tr key={activity.id} className="hover:bg-gray-100">
+                        <td className="px-6 py-4 text-sm text-gray-900">{activity.id}</td>
+                        <td className="px-6 py-4 text-sm text-gray-900 capitalize">{activity.collection}</td>
+                        <td className="px-6 py-4 text-sm text-gray-900">
+                          {activity.postType || activity.reportStatus || activity.applicationStatus || "No name"}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-900">{activity.timestamp}</td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan="4" className="px-6 py-4 text-center text-gray-500">No recent activity</td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>

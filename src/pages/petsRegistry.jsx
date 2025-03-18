@@ -6,6 +6,9 @@ import { ToastContainer, toast } from "react-toastify";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEye, faTrashAlt } from "@fortawesome/free-solid-svg-icons";
 import "react-toastify/dist/ReactToastify.css";
+import { useNavigate } from "react-router-dom";
+
+
 
 const PetsRegistry = () => {
   const [records, setRecords] = useState([]);
@@ -14,6 +17,7 @@ const PetsRegistry = () => {
   const [selectedRecord, setSelectedRecord] = useState(null); // For modal
   const rowsPerPage = 8;
   const [showModal, setShowModal] = useState(false); // Modal visibility state
+  const navigate = useNavigate();
 
   useEffect(() => {
     // Function to fetch data from multiple collections
@@ -137,10 +141,15 @@ const PetsRegistry = () => {
                     <td className="px-6 py-3 text-left">{record.timestamp}</td>
                     <td className="px-6 py-3 text-center space-x-2">
                       <div className="flex space-x-2">
-                        <button className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 flex items-center">
+                      <button
+                          onClick={() =>
+                            navigate(`/view-profile/${record.collectionName}/${record.id}`)
+                          }
+                          className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 flex items-center"
+                        >
                           <FontAwesomeIcon icon={faEye} className="mr-2" />
                           View
-                        </button>
+                      </button>
                         <button
                           onClick={() => {
                             setSelectedRecord(record);
