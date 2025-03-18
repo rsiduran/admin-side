@@ -49,27 +49,27 @@ const PetsAdoption = () => {
       };
 
       const petPicturePath = formData.petPicture
-        ? await uploadFile(formData.petPicture, "pet_pictures")
+        ? await uploadFile(formData.petPicture, "petPicture")
         : null;
 
       const additionalPhotosPaths = formData.additionalPhotos.length
         ? await Promise.all(
             formData.additionalPhotos.map((file) =>
-              uploadFile(file, "additional_photos")
+              uploadFile(file, "additionalPhotos")
             )
           )
         : [];
 
       const medicalRecordsPath = formData.medicalRecords
-        ? await uploadFile(formData.medicalRecords, "medical_records")
+        ? await uploadFile(formData.medicalRecords, "medical")
         : null;
 
       const spayCertificatePath = formData.spayCertificate
-        ? await uploadFile(formData.spayCertificate, "spay_certificates")
+        ? await uploadFile(formData.spayCertificate, "spay")
         : null;
 
       const vaccinationRecordsPath = formData.vaccinationRecords
-        ? await uploadFile(formData.vaccinationRecords, "vaccination_records")
+        ? await uploadFile(formData.vaccinationRecords, "vaccination")
         : null;
 
       // Save data to Firestore
