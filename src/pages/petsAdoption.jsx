@@ -3,7 +3,7 @@ import AppSideBar from "../components/AppSideBar";
 import { db } from "../firebase";
 import { collection, getDocs } from "firebase/firestore";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faEye } from "@fortawesome/free-solid-svg-icons";
+import { faEye, faEdit } from "@fortawesome/free-solid-svg-icons";
 
 const PetsAdoption = () => {
   const [showModal, setShowModal] = useState(false); // Modal visibility state
@@ -218,123 +218,259 @@ const PetsAdoption = () => {
               }}
               className="fixed inset-0 bg-gray-800 bg-opacity-50 flex items-center justify-center z-50"
             >
-              <div className="bg-white rounded-lg p-6 w-96">
-                <h2 className="text-xl font-bold mb-4">Add Pet for Adoption</h2>
-                <form onSubmit={handleSubmit}>
-                  {/* Form Fields */}
-                  <input
-                    type="text"
-                    name="name"
-                    placeholder="Name"
-                    value={formData.name}
-                    onChange={handleChange}
-                    className="mb-4 w-full px-4 py-2 border border-gray-300 rounded-lg"
-                    required
-                  />
-                  <input
-                    type="number"
-                    name="age"
-                    placeholder="Age"
-                    value={formData.age}
-                    onChange={handleChange}
-                    className="mb-4 w-full px-4 py-2 border border-gray-300 rounded-lg"
-                    required
-                  />
-                  <input
-                    type="text"
-                    name="breed"
-                    placeholder="Breed"
-                    value={formData.breed}
-                    onChange={handleChange}
-                    className="mb-4 w-full px-4 py-2 border border-gray-300 rounded-lg"
-                    required
-                  />
-                  <textarea
-                    name="description"
-                    placeholder="Description"
-                    value={formData.description}
-                    onChange={handleChange}
-                    className="mb-4 w-full px-4 py-2 border border-gray-300 rounded-lg"
-                    required
-                  ></textarea>
-                  <select
-                    name="gender"
-                    value={formData.gender}
-                    onChange={handleChange}
-                    className="mb-4 w-full px-4 py-2 border border-gray-300 rounded-lg"
-                  >
-                    <option value="Male">Male</option>
-                    <option value="Female">Female</option>
-                  </select>
-                  <select
-                    name="size"
-                    value={formData.size}
-                    onChange={handleChange}
-                    className="mb-4 w-full px-4 py-2 border border-gray-300 rounded-lg"
-                  >
-                    <option value="Small">Small</option>
-                    <option value="Medium">Medium</option>
-                    <option value="Large">Large</option>
-                  </select>
-                  <select
-                    name="petType"
-                    value={formData.petType}
-                    onChange={handleChange}
-                    className="mb-4 w-full px-4 py-2 border border-gray-300 rounded-lg"
-                  >
-                    <option value="Dog">Dog</option>
-                    <option value="Cat">Cat</option>
-                  </select>
-                  <input
-                    type="file"
-                    name="petPicture"
-                    onChange={handleFileChange}
-                    className="mb-4 w-full"
-                    accept="image/*"
-                  />
-                  <input
-                    type="file"
-                    name="additionalPhotos"
-                    onChange={handleFileChange}
-                    className="mb-4 w-full"
-                    accept="image/*"
-                    multiple
-                  />
-                  <input
-                    type="file"
-                    name="medicalRecords"
-                    onChange={handleFileChange}
-                    className="mb-4 w-full"
-                    accept="image/*"
-                  />
-                  <input
-                    type="file"
-                    name="spayCertificate"
-                    onChange={handleFileChange}
-                    className="mb-4 w-full"
-                    accept="image/*"
-                  />
-                  <input
-                    type="file"
-                    name="vaccinationRecords"
-                    onChange={handleFileChange}
-                    className="mb-4 w-full"
-                    accept="image/*"
-                  />
+              <div className="bg-white rounded-lg p-6 w-230">
+                <form
+                  onSubmit={handleSubmit}
+                  className="max-w-4xl mx-auto p-4" // Limit width to make the form wider
+                >
+                  {/* Form Heading */}
+                  <h3 className="text-xl font-semibold mb-4 text-gray-800">
+                    Add Pet for Adoption
+                  </h3>
+
+                  {/* Name and Age Fields */}
+                  <div className="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                      <label
+                        htmlFor="name"
+                        className="block text-gray-700 font-medium mb-1"
+                      >
+                        Pet Name
+                      </label>
+                      <input
+                        type="text"
+                        id="name"
+                        name="name"
+                        placeholder="Enter pet's name"
+                        value={formData.name}
+                        onChange={handleChange}
+                        className="w-full px-3 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-300"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label
+                        htmlFor="age"
+                        className="block text-gray-700 font-medium mb-1"
+                      >
+                        Age (in years)
+                      </label>
+                      <input
+                        type="number"
+                        id="age"
+                        name="age"
+                        placeholder="Enter pet's age"
+                        value={formData.age}
+                        onChange={handleChange}
+                        className="w-full px-3 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-300"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  {/* Breed and Description */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                      <label
+                        htmlFor="breed"
+                        className="block text-gray-700 font-medium mb-1"
+                      >
+                        Breed
+                      </label>
+                      <input
+                        type="text"
+                        id="breed"
+                        name="breed"
+                        placeholder="Enter pet's breed"
+                        value={formData.breed}
+                        onChange={handleChange}
+                        className="w-full px-3 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-300"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label
+                        htmlFor="description"
+                        className="block text-gray-700 font-medium mb-1"
+                      >
+                        Description
+                      </label>
+                      <textarea
+                        id="description"
+                        name="description"
+                        placeholder="Provide a description"
+                        value={formData.description}
+                        onChange={handleChange}
+                        className="w-full px-3 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-300"
+                        rows="2" // Reduce height of the textarea
+                        required
+                      ></textarea>
+                    </div>
+                  </div>
+
+                  {/* Gender, Size, and Type */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <div>
+                      <label
+                        htmlFor="gender"
+                        className="block text-gray-700 font-medium mb-1"
+                      >
+                        Gender
+                      </label>
+                      <select
+                        id="gender"
+                        name="gender"
+                        value={formData.gender}
+                        onChange={handleChange}
+                        className="w-full px-3 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-300"
+                      >
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label
+                        htmlFor="size"
+                        className="block text-gray-700 font-medium mb-1"
+                      >
+                        Size
+                      </label>
+                      <select
+                        id="size"
+                        name="size"
+                        value={formData.size}
+                        onChange={handleChange}
+                        className="w-full px-3 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-300"
+                      >
+                        <option value="Small">Small</option>
+                        <option value="Medium">Medium</option>
+                        <option value="Large">Large</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label
+                        htmlFor="petType"
+                        className="block text-gray-700 font-medium mb-1"
+                      >
+                        Pet Type
+                      </label>
+                      <select
+                        id="petType"
+                        name="petType"
+                        value={formData.petType}
+                        onChange={handleChange}
+                        className="w-full px-3 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-300"
+                      >
+                        <option value="Dog">Dog</option>
+                        <option value="Cat">Cat</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* File Upload Section */}
+                  <fieldset className="mb-4 border-t border-gray-300 pt-2">
+                    <legend className="text-lg font-medium text-gray-700">
+                      Upload Files
+                    </legend>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      <div>
+                        <label
+                          htmlFor="petPicture"
+                          className="block text-gray-700 font-medium mb-1"
+                        >
+                          Pet Picture
+                        </label>
+                        <input
+                          type="file"
+                          id="petPicture"
+                          name="petPicture"
+                          onChange={handleFileChange}
+                          className="w-full px-3 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-300"
+                          accept="image/*"
+                        />
+                      </div>
+                      <div>
+                        <label
+                          htmlFor="additionalPhotos"
+                          className="block text-gray-700 font-medium mb-1"
+                        >
+                          Additional Photos
+                        </label>
+                        <input
+                          type="file"
+                          id="additionalPhotos"
+                          name="additionalPhotos"
+                          onChange={handleFileChange}
+                          className="w-full px-3 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-300"
+                          accept="image/*"
+                          multiple
+                        />
+                      </div>
+                      <div>
+                        <label
+                          htmlFor="medicalRecords"
+                          className="block text-gray-700 font-medium mb-1"
+                        >
+                          Medical Records
+                        </label>
+                        <input
+                          type="file"
+                          id="medicalRecords"
+                          name="medicalRecords"
+                          onChange={handleFileChange}
+                          className="w-full px-3 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-300"
+                          accept="image/*"
+                        />
+                      </div>
+                      <div>
+                        <label
+                          htmlFor="spayCertificate"
+                          className="block text-gray-700 font-medium mb-1"
+                        >
+                          Spay Certificate
+                        </label>
+                        <input
+                          type="file"
+                          id="spayCertificate"
+                          name="spayCertificate"
+                          onChange={handleFileChange}
+                          className="w-full px-3 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-300"
+                          accept="image/*"
+                        />
+                      </div>
+                      <div>
+                        <label
+                          htmlFor="vaccinationRecords"
+                          className="block text-gray-700 font-medium mb-1"
+                        >
+                          Vaccination Records
+                        </label>
+                        <input
+                          type="file"
+                          id="vaccinationRecords"
+                          name="vaccinationRecords"
+                          onChange={handleFileChange}
+                          className="w-full px-3 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-300"
+                          accept="image/*"
+                        />
+                      </div>
+                    </div>
+                  </fieldset>
+
                   {/* Buttons */}
-                  <div className="flex justify-end space-x-2">
+                  <div className="flex justify-end space-x-4 mt-4">
                     <button
                       type="button"
                       onClick={() => setShowModal(false)}
-                      className="px-4 py-2 bg-gray-300 rounded-lg hover:bg-gray-400"
+                      className="px-4 py-2 bg-gray-300 rounded-md hover:bg-gray-400"
                     >
                       Cancel
                     </button>
                     <button
                       type="submit"
-                      className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+                      className="px-5 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
                     >
-                      Save
+                      Add Data
                     </button>
                   </div>
                 </form>
@@ -377,10 +513,19 @@ const PetsAdoption = () => {
                         {record.timestamp}
                       </td>
                       <td className="px-6 py-3 text-left">
-                        <button className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 flex items-center">
-                          <FontAwesomeIcon icon={faEye} className="mr-2" />
-                          View
-                        </button>
+                        <div className="flex space-x-2">
+                          <button className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 flex items-center">
+                            <FontAwesomeIcon icon={faEye} className="mr-2" />
+                            View
+                          </button>
+                          <button
+                            // onClick={editData}
+                            className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600"
+                          >
+                            <FontAwesomeIcon icon={faEdit} className="mr-2" />
+                            Edit
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))
