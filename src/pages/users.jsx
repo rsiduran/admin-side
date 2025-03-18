@@ -1,34 +1,41 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import AppSideBar from '../components/AppSideBar';
+import { db } from "../firebase";
+import { collection, getDocs } from "firebase/firestore"
 
 const Users = () => {
-  const [users] = useState([
-    { id: 1, username: 'AliceJohnson', email: 'alice@example.com', createdAt: '2023-04-01' },
-    { id: 2, username: 'BobSmith', email: 'bob@example.com', createdAt: '2023-03-15' },
-    { id: 3, username: 'CharlieBrown', email: 'charlie@example.com', createdAt: '2023-03-20' },
-    { id: 4, username: 'DianaPrince', email: 'diana@example.com', createdAt: '2023-03-10' },
-    { id: 5, username: 'EthanHunt', email: 'ethan@example.com', createdAt: '2023-02-25' },
-    { id: 6, username: 'FionaShaw', email: 'fiona@example.com', createdAt: '2023-02-14' },
-    { id: 7, username: 'GeorgeClooney', email: 'george@example.com', createdAt: '2023-01-30' },
-    { id: 8, username: 'HannahMontana', email: 'hannah@example.com', createdAt: '2023-01-15' },
-    { id: 9, username: 'IvanDrago', email: 'ivan@example.com', createdAt: '2023-01-05' },
-    { id: 10, username: 'JackRyan', email: 'jack@example.com', createdAt: '2022-12-20' },
-    { id: 11, username: 'KatieHolmes', email: 'katie@example.com', createdAt: '2022-12-15' },
-    { id: 12, username: 'LiamNeeson', email: 'liam@example.com', createdAt: '2022-12-01' },
-    { id: 13, username: 'MilaKunis', email: 'mila@example.com', createdAt: '2022-11-20' },
-    { id: 14, username: 'NathanDrake', email: 'nathan@example.com', createdAt: '2022-11-05' },
-    { id: 15, username: 'OliviaSpencer', email: 'olivia@example.com', createdAt: '2022-10-25' },
-  ]);
-
+  const [users, setUsers] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const rowsPerPage = 8;
 
+  // Fetch users from Firestore
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const querySnapshot = await getDocs(collection(db, "users"));
+        const userData = querySnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+          createdAt: doc.data().createdAt
+            ? new Date(doc.data().createdAt.seconds * 1000).toLocaleString()
+            : "N/A",
+        }));
+        setUsers(userData);
+      } catch (error) {
+        console.error("Error fetching users:", error);
+      }
+    };
+    
+    fetchUsers();
+  }, []);
+
   // Filter users based on the search term
   const filteredUsers = users.filter((user) =>
-    Object.keys(user).some((key) =>
-      user[key].toString().toLowerCase().includes(searchTerm.toLowerCase())
-    )
+    Object.keys(user).some((key) => {
+      const value = user[key];
+      return value && value.toString().toLowerCase().includes(searchTerm.toLowerCase());
+    })
   );
 
   // Pagination logic
@@ -62,7 +69,7 @@ const Users = () => {
           <table className="table-auto w-full text-sm text-gray-800">
             <thead className="bg-gray-100 text-gray-700 uppercase">
               <tr>
-                <th className="px-6 py-3 text-left">Username</th>
+                <th className="px-6 py-3 text-left">Fullname</th>
                 <th className="px-6 py-3 text-left">Email</th>
                 <th className="px-6 py-3 text-left">Created At</th>
                 <th className="px-6 py-3 text-left">Actions</th>
@@ -71,11 +78,8 @@ const Users = () => {
             <tbody>
               {currentRows.length > 0 ? (
                 currentRows.map((user) => (
-                  <tr
-                    key={user.id}
-                    className="odd:bg-white even:bg-gray-50 hover:bg-blue-50"
-                  >
-                    <td className="px-6 py-3 text-left">{user.username}</td>
+                  <tr key={user.id} className="odd:bg-white even:bg-gray-50 hover:bg-blue-50">
+                    <td className="px-6 py-3 text-left">{user.firstName} {user.lastName}</td>
                     <td className="px-6 py-3 text-left">{user.email}</td>
                     <td className="px-6 py-3 text-left">{user.createdAt}</td>
                     <td className="px-6 py-3 text-left">
@@ -87,14 +91,9 @@ const Users = () => {
                 ))
               ) : (
                 <tr>
-                  <td
-                    colSpan={4}
-                    className="text-center px-6 py-4 text-gray-500"
-                  >
-                    No users found.
-                  </td>
+                  <td colSpan={4} className="text-center px-6 py-4 text-gray-500">No users found.</td>
                 </tr>
-              )}
+              )}  
             </tbody>
           </table>
         </div>
@@ -104,7 +103,7 @@ const Users = () => {
           {Array.from({ length: totalPages }, (_, index) => index + 1).map((pageNumber) => (
             <button
               key={pageNumber}
-              onClick={() => handlePageChange(pageNumber)}
+              onClick={() => setCurrentPage(pageNumber)}
               className={`px-4 py-2 border rounded-lg ${
                 currentPage === pageNumber
                   ? 'bg-blue-500 text-white'
