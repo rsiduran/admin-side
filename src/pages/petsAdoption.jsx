@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import AppSideBar from "../components/AppSideBar";
 import { db } from "../firebase";
-import { collection, getDocs, addDoc } from "firebase/firestore";
+import { collection, getDocs, addDoc, doc, updateDoc } from "firebase/firestore";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEye, faEdit } from "@fortawesome/free-solid-svg-icons";
 import { toast } from "react-toastify";
@@ -13,6 +13,7 @@ const storage = getStorage();
 const PetsAdoption = () => {
   const navigate = useNavigate();
   const [showModal, setShowModal] = useState(false); // Modal visibility state
+  const [editingPetId, setEditingPetId] = useState(null);
   const [formData, setFormData] = useState({
     name: "",
     age: "",
@@ -28,95 +29,147 @@ const PetsAdoption = () => {
     petType: "Dog", // Default value
   });
 
-  // Handle form input changes
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
   };
 
-  // Handle file selection
   const handleFileChange = (e) => {
     const { name, files } = e.target;
+  
     setFormData((prev) => ({
       ...prev,
-      [name]: name === "additionalPhotos" ? Array.from(files) : files[0], // Convert FileList to array
+      [name]: name === "additionalPhotos" ? Array.from(files) : files[0], 
     }));
+  
   };
 
   const uploadFile = async (file, folder) => {
+    if (!file) {
+      return null;
+    }
     const storageRef = ref(storage, `${folder}/${file.name}`);
     const snapshot = await uploadBytes(storageRef, file);
-    const downloadURL = await getDownloadURL(snapshot.ref); // Get the URL
+    const downloadURL = await getDownloadURL(snapshot.ref);
     return downloadURL;
   };
-
-  // Handle form submission
+  
   const handleSubmit = async (e) => {
-  e.preventDefault();
-  try {
-    const petPictureURL = formData.petPicture
-      ? await uploadFile(formData.petPicture, "petPictures")
-      : null;
-
-    const additionalPhotosURLs =
-      formData.additionalPhotos.length > 0
-        ? await Promise.all(
-            formData.additionalPhotos.map((file) =>
-              uploadFile(file, "additionalPhotos")
+    e.preventDefault();
+    console.log("Submitting form data:", formData); 
+  
+    try {
+ 
+      const petPictureURL =
+        typeof formData.petPicture === "object" && formData.petPicture !== null
+          ? await uploadFile(formData.petPicture, "petPictures")
+          : formData.petPicture; 
+  
+      const additionalPhotosURLs =
+        formData.additionalPhotos && formData.additionalPhotos.length > 0
+          ? await Promise.all(
+              formData.additionalPhotos.map((file) =>
+                typeof file === "object" && file !== null
+                  ? uploadFile(file, "additionalPhotos")
+                  : file 
+              )
             )
-          )
-        : [];
+          : formData.additionalPhotos || []; 
+  
+      const medicalRecordsURL =
+        formData.medicalRecords && typeof formData.medicalRecords === "object"
+          ? await uploadFile(formData.medicalRecords, "medicalRecords")
+          : formData.medicalRecords || null;
+  
+      const spayCertificateURL =
+        formData.spayCertificate && typeof formData.spayCertificate === "object"
+          ? await uploadFile(formData.spayCertificate, "spayCertificates")
+          : formData.spayCertificate || null;
+  
+      const vaccinationRecordsURL =
+        formData.vaccinationRecords && typeof formData.vaccinationRecords === "object"
+          ? await uploadFile(formData.vaccinationRecords, "vaccinationRecords")
+          : formData.vaccinationRecords || null;
+  
+      if (editingPetId) {
+        await updateDoc(doc(db, "adoption", editingPetId), {
+          name: formData.name,
+          age: formData.age,
+          breed: formData.breed,
+          petPicture: petPictureURL,
+          additionalPhotos: additionalPhotosURLs,
+          description: formData.description,
+          gender: formData.gender,
+          medicalRecords: medicalRecordsURL,
+          spayCertificate: spayCertificateURL,
+          vaccinationRecords: vaccinationRecordsURL,
+          size: formData.size,
+          petType: formData.petType,
+          timestamp: new Date(),
+        });
+        toast.success("Pet updated successfully!");
+      } else {
+        console.log("Adding new pet record"); // Debug log
+        await addDoc(collection(db, "adoption"), {
+          name: formData.name,
+          age: formData.age,
+          breed: formData.breed,
+          petPicture: petPictureURL,
+          additionalPhotos: additionalPhotosURLs,
+          description: formData.description,
+          gender: formData.gender,
+          medicalRecords: medicalRecordsURL,
+          spayCertificate: spayCertificateURL,
+          vaccinationRecords: vaccinationRecordsURL,
+          size: formData.size,
+          petType: formData.petType,
+          timestamp: new Date(),
+        });
+        toast.success("Pet added successfully!");
+      }
 
-    const medicalRecordsURL = formData.medicalRecords
-      ? await uploadFile(formData.medicalRecords, "medicalRecords")
-      : null;
-
-    const spayCertificateURL = formData.spayCertificate
-      ? await uploadFile(formData.spayCertificate, "spayCertificates")
-      : null;
-
-    const vaccinationRecordsURL = formData.vaccinationRecords
-      ? await uploadFile(formData.vaccinationRecords, "vaccinationRecords")
-      : null;
-
-    // Save data to Firestore
-    await addDoc(collection(db, "adoption"), {
-      name: formData.name,
-      age: formData.age,
-      breed: formData.breed,
-      petPicture: petPictureURL,
-      additionalPhotos: additionalPhotosURLs,
-      description: formData.description,
-      gender: formData.gender,
-      medicalRecords: medicalRecordsURL,
-      spayCertificate: spayCertificateURL,
-      vaccinationRecords: vaccinationRecordsURL,
-      size: formData.size,
-      petType: formData.petType,
-      timestamp: new Date(),
-    });
-
-    toast.success("Pet added successfully!");
-    setShowModal(false);
-    setFormData({
-      name: "",
-      age: "",
-      breed: "",
-      petPicture: null,
-      additionalPhotos: [],
-      description: "",
-      gender: "Male",
-      medicalRecords: null,
-      spayCertificate: null,
-      vaccinationRecords: null,
-      size: "Small",
-      petType: "Dog",
-    });
-  } catch (error) {
-    console.error("Error adding pet:", error);
-    toast.error("Error adding pet. Please try again.");
-  }
-};
+      setShowModal(false);
+      setEditingPetId(null);
+      setFormData({
+        name: "",
+        age: "",
+        breed: "",
+        petPicture: null,
+        additionalPhotos: [],
+        description: "",
+        gender: "Male",
+        medicalRecords: null,
+        spayCertificate: null,
+        vaccinationRecords: null,
+        size: "Small",
+        petType: "Dog",
+      });
+    } catch (error) {
+      toast.error("Error processing pet record. Please try again.");
+    }
+  };
+  
+const handleEdit = (pet) => {
+  setFormData({
+    name: pet.name ?? "",
+    age: pet.age ?? "",
+    breed: pet.breed ?? "",
+    petPicture: pet.petPicture ?? null,
+    additionalPhotos: pet.additionalPhotos ?? [],
+    description: pet.description ?? "",
+    gender: pet.gender ?? "Male",
+    medicalRecords: pet.medical ?? null,
+    spayCertificate: pet.spay ?? null,
+    vaccinationRecords: pet.vaccination ?? null,
+    size: pet.size ?? "Small",
+    petType: pet.petType ?? "Dog",
+  });
+  setEditingPetId(pet.id); 
+  setShowModal(true);
+  
+    setEditingPetId(pet.id);
+    setShowModal(true);
+  };
 
   const [adoptionRecords, setAdoptionRecords] = useState([]);
   const [adoptedRecords, setAdoptedRecords] = useState([]);
@@ -260,10 +313,10 @@ const PetsAdoption = () => {
                         htmlFor="age"
                         className="block text-gray-700 font-medium mb-1"
                       >
-                        Age (in years)
+                        Age 
                       </label>
                       <input
-                        type="number"
+                        type="text"
                         id="age"
                         name="age"
                         placeholder="Enter pet's age"
@@ -521,12 +574,15 @@ const PetsAdoption = () => {
                       </td>
                       <td className="px-6 py-3 text-left">
                         <div className="flex space-x-2">
-                          <button className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 flex items-center">
-                            <FontAwesomeIcon icon={faEye} className="mr-2" />
-                            View
-                          </button>
+                        <button
+                          onClick={() => navigate(`/view-profile/adoption/${record.id}`)}
+                          className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 flex items-center"
+                        >
+                          <FontAwesomeIcon icon={faEye} className="mr-2" />
+                          View
+                        </button>
                           <button
-                            // onClick={editData}
+                            onClick={() => handleEdit(record)}
                             className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600"
                           >
                             <FontAwesomeIcon icon={faEdit} className="mr-2" />
@@ -548,7 +604,9 @@ const PetsAdoption = () => {
                 )}
               </tbody>
             </table>
+            
           </div>
+          
           <div className="mt-4 flex space-x-2">
             {Array.from(
               { length: adoptionTotalPages },
@@ -606,7 +664,10 @@ const PetsAdoption = () => {
                       <td className="px-6 py-3 text-left">{record.age}</td>
                       <td className="px-6 py-3 text-left">{record.size}</td>
                       <td className="px-6 py-3 text-left">
-                        <button className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 flex items-center">
+                      <button
+                          onClick={() => navigate(`/view-profile/adopted/${record.id}`)}
+                          className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 flex items-center"
+                        >
                           <FontAwesomeIcon icon={faEye} className="mr-2" />
                           View
                         </button>

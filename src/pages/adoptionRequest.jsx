@@ -138,10 +138,13 @@ const AdoptionRequest = () => {
                     <td className="px-6 py-3 text-center space-x-2">
                       <div className="flex space-x-2">
                         <button
-                          className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 flex items-center"
-                        >
-                          <FontAwesomeIcon icon={faEye} className="mr-2" />
-                          View
+                            onClick={() =>
+                              navigate(`/view-profile/adoptionApplication/${record.id}`)
+                            }
+                            className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 flex items-center"
+                          >
+                            <FontAwesomeIcon icon={faEye} className="mr-2" />
+                            View
                         </button>
                       </div>
                     </td>
