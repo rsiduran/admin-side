@@ -530,7 +530,7 @@ const handleEdit = (pet) => {
                       type="submit"
                       className="px-5 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
                     >
-                      Add Data
+                      Submit
                     </button>
                   </div>
                 </form>

@@ -124,7 +124,7 @@ const History = () => {
                 <th className="px-6 py-3 text-left">Type</th>
                 <th className="px-6 py-3 text-left">Status</th>
                 <th className="px-6 py-3 text-left">Date</th>
-                <th className="px-6 py-3 text-left">Actions</th>
+                {/* <th className="px-6 py-3 text-left">Actions</th> */}
               </tr>
             </thead>
             <tbody>
@@ -139,7 +139,7 @@ const History = () => {
                     <td className="px-6 py-3 text-left">{record.petType}</td>
                     <td className="px-6 py-3 text-left">{record.postType}</td>
                     <td className="px-6 py-3 text-left">{record.timestamp}</td>
-                    <td className="px-6 py-3 text-center space-x-2">
+                    {/* <td className="px-6 py-3 text-center space-x-2">
                       <div className="flex space-x-2">
                       <button
                           onClick={() =>
@@ -151,7 +151,7 @@ const History = () => {
                           View
                       </button>
                       </div>
-                    </td>
+                    </td> */}
                   </tr>
                 ))
               ) : (
