@@ -120,8 +120,8 @@ const Dashboard = () => {
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
-        <header className="bg-white shadow-sm p-4 flex justify-between items-center">
-          <h1 className="text-xl font-semibold text-gray-800">Dashboard</h1>
+        <header className="shadow-sm p-4 flex justify-between items-center">
+          <h1 className="text-xl font-semibold text-gray-800" style={{fontSize: 35}}>Dashboard</h1>
         </header>
 
         {/* Main Area */}
