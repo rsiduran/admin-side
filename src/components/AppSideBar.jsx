@@ -23,7 +23,7 @@ import {
 
 const AppSideBar = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const navigate = useNavigate(); // Initialize navigate
+  const navigate = useNavigate();
 
   const toggleSidebar = () => {
     setIsOpen(!isOpen);
@@ -49,62 +49,32 @@ const AppSideBar = () => {
       {/* Sidebar */}
       <div className="h-full">
         <ul className="mt-4">
-          <li
-            className="p-6 hover:bg-green-700 cursor-pointer flex items-center whitespace-nowrap"
-            onClick={() => DashboardNavigate(navigate)}
-          >
-            <FaTachometerAlt className="text-lg" />
-            {isOpen && <span className="ml-4">Dashboard</span>}
-          </li>
-          <li
-            className="p-6 hover:bg-green-700 cursor-pointer flex items-center whitespace-nowrap"
-            onClick={() => UsersNavigate(navigate)}
-          >
-            <FaUsers className="text-lg" />
-            {isOpen && <span className="ml-4">Users</span>}
-          </li>
-          <li
-            className="p-6 hover:bg-green-700 cursor-pointer flex items-center whitespace-nowrap"
-            onClick={() => WanderPetsRegistryNavigate(navigate)}
-          >
-            <FaPaw className="text-lg" />
-            {isOpen && <span className="ml-4">WanderPets Registry</span>}
-          </li>
-          <li
-            className="p-6 hover:bg-green-700 cursor-pointer flex items-center whitespace-nowrap"
-            onClick={() => PetsAdoption(navigate)}
-          >
-            <FaHandHoldingHeart className="text-lg" />
-            {isOpen && <span className="ml-4">Pets Adoption</span>}
-          </li>
-          <li
-            className="p-6 hover:bg-green-700 cursor-pointer flex items-center whitespace-nowrap"
-            onClick={() => AdoptionRequest(navigate)}
-          >
-            <FaClipboardList className="text-lg" />
-            {isOpen && <span className="ml-4">Adoption Application</span>}
-          </li>
-          <li
-            className="p-6 hover:bg-green-700 cursor-pointer flex items-center whitespace-nowrap"
-            onClick={() => RescueRequest(navigate)}
-          >
-            <FaHandsHelping className="text-lg" />
-            {isOpen && <span className="ml-4">Rescue Request</span>}
-          </li>
-          <li
-            className="p-6 hover:bg-green-700 cursor-pointer flex items-center whitespace-nowrap"
-            onClick={() => History(navigate)}
-          >
-            <FaHistory className="text-lg" />
-            {isOpen && <span className="ml-4">History</span>}
-          </li>
-          <li
-            className="p-6 hover:bg-green-700 cursor-pointer flex items-center whitespace-nowrap"
-            onClick={() => handleLogout(navigate)}
-          >
-            <FaSignOutAlt className="text-lg" />
-            {isOpen && <span className="ml-4">Logout</span>}
-          </li>
+          {[
+            { icon: <FaTachometerAlt className="text-lg" />, text: "Dashboard", onClick: () => DashboardNavigate(navigate) },
+            { icon: <FaUsers className="text-lg" />, text: "Users", onClick: () => UsersNavigate(navigate) },
+            { icon: <FaPaw className="text-lg" />, text: "WanderPets Registry", onClick: () => WanderPetsRegistryNavigate(navigate) },
+            { icon: <FaHandHoldingHeart className="text-lg" />, text: "Pets Adoption", onClick: () => PetsAdoption(navigate) },
+            { icon: <FaClipboardList className="text-lg" />, text: "Adoption Application", onClick: () => AdoptionRequest(navigate) },
+            { icon: <FaHandsHelping className="text-lg" />, text: "Rescue Request", onClick: () => RescueRequest(navigate) },
+            { icon: <FaHistory className="text-lg" />, text: "History", onClick: () => History(navigate) },
+            { icon: <FaSignOutAlt className="text-lg" />, text: "Logout", onClick: () => handleLogout(navigate) },
+          ].map((item, index) => (
+            <li
+              key={index}
+              className="relative group p-6 hover:bg-green-700 cursor-pointer flex items-center whitespace-nowrap"
+              onClick={item.onClick}
+            >
+              {item.icon}
+              {isOpen && <span className="ml-4">{item.text}</span>}
+
+              {/* Tooltip */}
+              {!isOpen && (
+                <span className="absolute left-full top-1/2 transform -translate-y-1/2 ml-2 whitespace-nowrap rounded-md bg-black text-white text-xs py-1 px-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                  {item.text}
+                </span>
+              )}
+            </li>
+          ))}
         </ul>
       </div>
     </div>
