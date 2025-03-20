@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useNavigate, Navigate } from 'react-router-dom';
 import './App.css';
 import Login from './auth/login';
 import Dashboard from './pages/dashboard';
@@ -14,26 +14,56 @@ import ViewProfile from './pages/VIewProfile';
 
 function App() {
   const navigate = useNavigate();
+  const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
 
   useEffect(() => {
-    const isLoggedIn = localStorage.getItem('isLoggedIn');
-    if (isLoggedIn === 'true') {
-      navigate('/dashboard');
+    if (!isLoggedIn) {
+      navigate('/');
     }
-  }, [navigate]); // Add an empty dependency array to ensure this runs only once
+  }, [isLoggedIn, navigate]);
 
   return (
     <Routes>
-      <Route path="/" element={<Login />} />
-      <Route path="/dashboard" element={<Dashboard />} />
-      <Route path="/users" element={<Users />} /> 
-      <Route path="/petsRegistry" element={<PetsRegistry />} /> 
-      <Route path="/petsAdoption" element={<PetsAdoption />} /> 
-      <Route path="/AdoptionRequest" element={<AdoptionRequest />} /> 
-      <Route path="/RescueRequest" element={<RescueRequest />} /> 
-      <Route path="/History" element={<History />} />
-      <Route path="/profile/:email" element={<UserProfile />} />
-      <Route path="/view-profile/:collectionName/:id" element={<ViewProfile />} />
+      <Route
+        path="/"
+        element={isLoggedIn ? <Navigate to="/dashboard" /> : <Login />}
+      />
+      <Route
+        path="/dashboard"
+        element={isLoggedIn ? <Dashboard /> : <Navigate to="/" />}
+      />
+      <Route
+        path="/users"
+        element={isLoggedIn ? <Users /> : <Navigate to="/" />}
+      />
+      <Route
+        path="/petsRegistry"
+        element={isLoggedIn ? <PetsRegistry /> : <Navigate to="/" />}
+      />
+      <Route
+        path="/petsAdoption"
+        element={isLoggedIn ? <PetsAdoption /> : <Navigate to="/" />}
+      />
+      <Route
+        path="/AdoptionRequest"
+        element={isLoggedIn ? <AdoptionRequest /> : <Navigate to="/" />}
+      />
+      <Route
+        path="/RescueRequest"
+        element={isLoggedIn ? <RescueRequest /> : <Navigate to="/" />}
+      />
+      <Route
+        path="/History"
+        element={isLoggedIn ? <History /> : <Navigate to="/" />}
+      />
+      <Route
+        path="/profile/:email"
+        element={isLoggedIn ? <UserProfile /> : <Navigate to="/" />}
+      />
+      <Route
+        path="/view-profile/:collectionName/:id"
+        element={isLoggedIn ? <ViewProfile /> : <Navigate to="/" />}
+      />
     </Routes>
   );
 }

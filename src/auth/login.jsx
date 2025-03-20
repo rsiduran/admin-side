@@ -13,9 +13,8 @@ const Login = () => {
   const handleLogin = (e) => {
     e.preventDefault();
     if (username === 'admin' && password === 'admin') {
-      console.log('Logged in successfully!');
-      // localStorage.setItem('isLoggedIn', 'true'); 
-      navigate('/dashboard'); 
+      localStorage.setItem('isLoggedIn', 'true'); // Set login state
+      navigate('/dashboard');
     } else {
       toast.error('Invalid credentials. Please try again.');
     }
