@@ -79,7 +79,7 @@ const UserProfile = () => {
           {userPets.map((pet, index) => (
             <div key={index} className="bg-white shadow-lg rounded-lg p-4 border border-gray-300 flex flex-col items-center text-center">
               <img
-                src={pet.profilePicture || "https://via.placeholder.com/100"}
+                src={pet.petPicture || "https://via.placeholder.com/100"}
                 alt={pet.name}
                 className="w-24 h-24 rounded-full border border-gray-300 mb-3 object-cover"
               />
