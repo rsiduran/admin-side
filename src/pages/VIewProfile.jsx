@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { db } from "../firebase";
 import { doc, getDoc } from "firebase/firestore";
 import AppSideBar from '../components/AppSideBar';
-import { updateDoc, serverTimestamp, setDoc } from "firebase/firestore";
+import { updateDoc, serverTimestamp, setDoc, collection, query, where, getDocs, addDoc,} from "firebase/firestore";
 
 const ViewProfile = () => {
   const { collectionName, id } = useParams();
@@ -63,102 +63,150 @@ const ViewProfile = () => {
   };
 
   const updateApplicationStatus = async (newStatus, personnel) => {
-  
     if (!window.confirm(`Are you sure you want to change status to ${newStatus}?`)) return;
-  
-    try {
-      const docRef = doc(db, collectionName, id);
-      const docSnap = await getDoc(docRef);
-  
-      if (!docSnap.exists()) {
-        console.error("Document does not exist.");
-        return;
-      }
-  
-      const petData = docSnap.data();
-  
-      // Update application status and viewed status
-      await updateDoc(docRef, {
-        applicationStatus: newStatus,
-        statusChange: serverTimestamp(),
-        viewed: "NO", // Mark as not viewed
-      });
-  
-      // If status changes from APPROVED to COMPLETED, move pet to "adopted" collection
-      if (petData.applicationStatus === "APPROVED" && newStatus === "COMPLETED") {
-        const adoptedDocRef = doc(db, "adopted", id); // Use the same ID
-  
-        await setDoc(adoptedDocRef, {
-          name: petData.name || "N/A",
-          age: petData.age || "N/A",
-          petType: petData.petType || "N/A",
-          breed: petData.breed || "N/A",
-          gender: petData.gender || "N/A",
-          size: petData.size || "N/A",
-          description: petData.description || "N/A",
-          petPicture: petData.petPicture || "",
-          vaccination: petData.vaccination || "",
-          spay: petData.spay || "",
-          medical: petData.medical || "",
-          timestamp: serverTimestamp(),
-          additionalPhotos: petData.additionalPhotos || "",
-        });
-  
-        alert("Pet details have been added to the adopted collection.");
-      }
-  
-      setPet((prev) => ({
-        ...prev,
-        applicationStatus: newStatus,
-        viewed: "NO",
-        personnel, // Ensure personnel updates in state
-      }));
-  
-      alert("Status updated successfully!");
-    } catch (error) {
-      console.error("Error updating status:", error);
-    }
-  };
 
-  const updateReportStatus = async (newStatus, rescuer) => {
-    if (!window.confirm(`Are you sure you want to change status to ${newStatus}?`)) return;
-  
     try {
+        const docRef = doc(db, collectionName, id);
+        const docSnap = await getDoc(docRef);
+
+        if (!docSnap.exists()) {
+            console.error("Document does not exist.");
+            return;
+        }
+
+        const petData = docSnap.data();
+
+        // Update application status and viewed status
+        await updateDoc(docRef, {
+            applicationStatus: newStatus,
+            statusChange: serverTimestamp(),
+            viewed: "NO", // Mark as not viewed
+        });
+
+        // Fetch user ID based on email
+        const usersQuery = query(collection(db, "users"), where("email", "==", petData.email));
+        const usersSnap = await getDocs(usersQuery);
+        const userId = usersSnap.docs.length > 0 ? usersSnap.docs[0].id : null;
+
+        // Insert notification
+        if (userId) {
+            const notificationRef = collection(db, "notifications");
+            console.log("Inserting notification...");
+            await addDoc(notificationRef, {
+                body: `${petData.transactionNumber}: Your Adoption Application for ${petData.name} has been updated to ${newStatus}`,
+                petId: id ?? '',
+                read: false,
+                title: 'Adoption Application Update',
+                timestamp: serverTimestamp(),
+                transactionNumber: petData.transactionNumber,
+                type: 'adoption',
+                userId: userId
+            });
+            console.log("Notification inserted successfully.");
+        } else {
+            console.error("No user found with the given email.");
+        }
+
+        // If status changes from APPROVED to COMPLETED, move pet to "adopted" collection
+        if (petData.applicationStatus === "APPROVED" && newStatus === "COMPLETED") {
+            const adoptedDocRef = doc(db, "adopted", id); 
+
+            await setDoc(adoptedDocRef, {
+                name: petData.name || "N/A",
+                age: petData.age || "N/A",
+                petType: petData.petType || "N/A",
+                breed: petData.breed || "N/A",
+                gender: petData.gender || "N/A",
+                size: petData.size || "N/A",
+                description: petData.description || "N/A",
+                petPicture: petData.petPicture || "",
+                vaccination: petData.vaccination || "",
+                spay: petData.spay || "",
+                medical: petData.medical || "",
+                timestamp: serverTimestamp(),
+                additionalPhotos: petData.additionalPhotos || "",
+            });
+
+            alert("Pet details have been added to the adopted collection.");
+        }
+
+        setPet((prev) => ({
+            ...prev,
+            applicationStatus: newStatus,
+            viewed: "NO",
+            personnel, // Ensure personnel updates in state
+        }));
+
+        alert("Status updated successfully!");
+    } catch (error) {
+        console.error("Error updating status:", error);
+    }
+};
+const updateReportStatus = async (newStatus, rescuer) => {
+  if (!window.confirm(`Are you sure you want to change status to ${newStatus}?`)) return;
+
+  try {
       const docRef = doc(db, collectionName, id);
       const docSnap = await getDoc(docRef);
-  
+
       if (!docSnap.exists()) {
-        console.error("Document does not exist.");
-        return;
+          console.error("Document does not exist.");
+          return;
       }
-  
-      // Update Firestore with new status and reset viewed
+
+      const petData = docSnap.data();
+
+      // Prepare update data
       const updateData = {
-        reportStatus: newStatus,
-        statusChange: serverTimestamp(),
-        viewed: "NO",
+          reportStatus: newStatus,
+          statusChange: serverTimestamp(),
+          viewed: "NO",
       };
-  
+
       if (newStatus === "RESCUED") {
-        updateData.rescuer = rescuer || ""; // Save rescuer's name
-        updateData.rescueDate = serverTimestamp();
+          updateData.rescuer = rescuer || ""; // Save rescuer's name
+          updateData.rescueDate = serverTimestamp();
       }
-  
+
       await updateDoc(docRef, updateData);
-  
+
+      // Fetch user ID based on email
+      const usersQuery = query(collection(db, "users"), where("email", "==", petData.email));
+      const usersSnap = await getDocs(usersQuery);
+      const userId = usersSnap.docs.length > 0 ? usersSnap.docs[0].id : null;
+
+      // Insert notification
+      if (userId) {
+          const notificationRef = collection(db, "notifications");
+          console.log("Inserting notification...");
+          await addDoc(notificationRef, {
+              body: `${petData.transactionNumber}: Your Rescue Request for ${petData.name} has been updated to ${newStatus}`,
+              petId: id ?? '',
+              read: false,
+              title: 'Rescue Request Update',
+              timestamp: serverTimestamp(),
+              transactionNumber: petData.transactionNumber,
+              type: 'rescue',
+              userId: userId
+          });
+          console.log("Notification inserted successfully.");
+      } else {
+          console.error("No user found with the given email.");
+      }
+
       // Update state
       setPet((prev) => ({
-        ...prev,
-        reportStatus: newStatus,
-        rescuer: newStatus === "RESCUED" ? rescuer : prev.rescuer,
-        viewed: "NO",
+          ...prev,
+          reportStatus: newStatus,
+          rescuer: newStatus === "RESCUED" ? rescuer : prev.rescuer,
+          viewed: "NO",
       }));
-  
+
       alert(`Status updated to ${newStatus}`);
-    } catch (error) {
+  } catch (error) {
       console.error("Error updating status:", error);
-    }
-  };
+  }
+};
 
   return (
     <div className="max-w-4xl mx-auto p-6 bg-white shadow-lg rounded-lg">
@@ -252,7 +300,7 @@ const ViewProfile = () => {
         </div>
       )}
 
-{["adoption", "adopted"].includes(collectionName) && (
+{collectionName === "adopted" && (
   <>
     <div className="flex flex-col md:flex-row">
       <div className="flex-shrink-0">
@@ -297,6 +345,67 @@ const ViewProfile = () => {
       <h2 className="text-2xl font-semibold mb-2">Medical Information</h2>
       <div className="flex space-x-4">
         {["medical", "spay", "vaccination"].map(
+          (field) =>
+            pet[field] && (
+              <img
+                key={field}
+                src={pet[field]}
+                alt={field}
+                className="w-32 h-32 object-cover rounded-md shadow cursor-pointer"
+                onClick={() => window.open(pet[field], "_blank")}
+              />
+            )
+        )}
+      </div>
+    </div>
+  </>
+)}
+
+{collectionName === "adoption" && (
+  <>
+    <div className="flex flex-col md:flex-row">
+      <div className="flex-shrink-0">
+        <img
+          src={pet.petPicture || "https://via.placeholder.com/200"}
+          alt={pet.name}
+          className="w-48 h-48 object-cover rounded-lg shadow-md"
+        />
+      </div>
+      <div className="md:ml-6 mt-4 md:mt-0">
+        <h1 className="text-3xl font-bold">{pet.name}</h1>
+        <p className="text-gray-700">{pet.description || "No description provided."}</p>
+        <div className="mt-4 grid grid-cols-2 gap-4 text-gray-800">
+          <p><strong>Age:</strong> {pet.age || "N/A"}</p>
+          <p><strong>Breed:</strong> {pet.breed || "N/A"}</p>
+          <p><strong>Gender:</strong> {pet.gender || "N/A"}</p>
+          <p><strong>Type:</strong> {pet.petType || "N/A"}</p>
+          <p><strong>Size:</strong> {pet.size || "N/A"}</p>
+          <p><strong>Posted On:</strong> {formatDate(pet.timestamp)}</p>
+        </div>
+      </div>
+    </div>
+
+    {pet.additionalPhotos?.length > 0 && (
+      <div className="mt-6">
+        <h2 className="text-2xl font-semibold mb-2">Additional Photos</h2>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          {pet.additionalPhotos.map((photo, index) => (
+            <img
+              key={index}
+              src={photo}
+              alt={`Additional ${index + 1}`}
+              className="w-full h-32 object-cover rounded-md shadow cursor-pointer"
+              onClick={() => window.open(photo, "_blank")}
+            />
+          ))}
+        </div>
+      </div>
+    )}
+
+    <div className="mt-6">
+      <h2 className="text-2xl font-semibold mb-2">Medical Information</h2>
+      <div className="flex space-x-4">
+        {["medicalRecords", "spayCertificate", "vaccinationRecords"].map(
           (field) =>
             pet[field] && (
               <img

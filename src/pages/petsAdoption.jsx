@@ -44,10 +44,10 @@ const PetsAdoption = () => {
 
   const handleFileChange = (e) => {
     const { name, files } = e.target;
-
+  
     setFormData((prev) => ({
       ...prev,
-      [name]: name === "additionalPhotos" ? Array.from(files) : files[0],
+      [name]: files.length > 0 ? files[0] : null, // Ensuring single file uploads work
     }));
   };
 
@@ -84,20 +84,19 @@ const PetsAdoption = () => {
           : formData.additionalPhotos || [];
 
       const medicalRecordsURL =
-        formData.medicalRecords && typeof formData.medicalRecords === "object"
-          ? await uploadFile(formData.medicalRecords, "medicalRecords")
-          : formData.medicalRecords || null;
-
+      formData.medicalRecords instanceof File
+        ? await uploadFile(formData.medicalRecords, "medicalRecords")
+        : formData.medicalRecords;
+      
       const spayCertificateURL =
-        formData.spayCertificate && typeof formData.spayCertificate === "object"
+        formData.spayCertificate instanceof File
           ? await uploadFile(formData.spayCertificate, "spayCertificates")
-          : formData.spayCertificate || null;
-
+          : formData.spayCertificate;
+      
       const vaccinationRecordsURL =
-        formData.vaccinationRecords &&
-        typeof formData.vaccinationRecords === "object"
+        formData.vaccinationRecords instanceof File
           ? await uploadFile(formData.vaccinationRecords, "vaccinationRecords")
-          : formData.vaccinationRecords || null;
+          : formData.vaccinationRecords;
 
       if (editingPetId) {
         await updateDoc(doc(db, "adoption", editingPetId), {
@@ -108,9 +107,9 @@ const PetsAdoption = () => {
           additionalPhotos: additionalPhotosURLs,
           description: formData.description,
           gender: formData.gender,
-          medicalRecords: medicalRecordsURL,
-          spayCertificate: spayCertificateURL,
-          vaccinationRecords: vaccinationRecordsURL,
+          medicalRecords: medicalRecordsURL || formData.medicalRecords,
+          spayCertificate: spayCertificateURL || formData.spayCertificate,
+          vaccinationRecords: vaccinationRecordsURL || formData.vaccinationRecords,
           size: formData.size,
           petType: formData.petType,
           timestamp: new Date(),
@@ -169,9 +168,9 @@ const PetsAdoption = () => {
       additionalPhotos: pet.additionalPhotos ?? [],
       description: pet.description ?? "",
       gender: pet.gender ?? "Male",
-      medicalRecords: pet.medical ?? null,
-      spayCertificate: pet.spay ?? null,
-      vaccinationRecords: pet.vaccination ?? null,
+      medicalRecords: pet.medicalRecords ?? null, // Corrected
+      spayCertificate: pet.spayCertificate ?? null, // Corrected
+      vaccinationRecords: pet.vaccinationRecords ?? null, // Corrected
       size: pet.size ?? "Small",
       petType: pet.petType ?? "Dog",
     });
