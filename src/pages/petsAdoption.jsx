@@ -45,12 +45,19 @@ const PetsAdoption = () => {
   const handleFileChange = (e) => {
     const { name, files } = e.target;
   
-    setFormData((prev) => ({
-      ...prev,
-      [name]: files.length > 0 ? files[0] : null, // Ensuring single file uploads work
-    }));
+    if (name === "additionalPhotos") {
+      setFormData((prev) => ({
+        ...prev,
+        additionalPhotos: [...files], // Store the selected files as an array
+      }));
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: files.length > 0 ? files[0] : null,
+      }));
+    }
   };
-
+  
   const uploadFile = async (file, folder) => {
     if (!file) {
       return null;
@@ -63,78 +70,57 @@ const PetsAdoption = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true); // Start loading
+    setLoading(true);
     console.log("Submitting form data:", formData);
-
+  
     try {
-      const petPictureURL =
-        typeof formData.petPicture === "object" && formData.petPicture !== null
-          ? await uploadFile(formData.petPicture, "petPictures")
-          : formData.petPicture;
-
-      const additionalPhotosURLs =
-        formData.additionalPhotos && formData.additionalPhotos.length > 0
-          ? await Promise.all(
-              formData.additionalPhotos.map((file) =>
-                typeof file === "object" && file !== null
-                  ? uploadFile(file, "additionalPhotos")
-                  : file
-              )
-            )
-          : formData.additionalPhotos || [];
-
-      const medicalRecordsURL =
-      formData.medicalRecords instanceof File
+      const petPictureURL = formData.petPicture instanceof File
+        ? await uploadFile(formData.petPicture, "petPictures")
+        : formData.petPicture;
+  
+      // Ensure all additional photos are uploaded
+      const additionalPhotosURLs = await Promise.all(
+        formData.additionalPhotos.map(async (file) =>
+          file instanceof File ? await uploadFile(file, "additionalPhotos") : file
+        )
+      );
+  
+      const medicalRecordsURL = formData.medicalRecords instanceof File
         ? await uploadFile(formData.medicalRecords, "medicalRecords")
         : formData.medicalRecords;
-      
-      const spayCertificateURL =
-        formData.spayCertificate instanceof File
-          ? await uploadFile(formData.spayCertificate, "spayCertificates")
-          : formData.spayCertificate;
-      
-      const vaccinationRecordsURL =
-        formData.vaccinationRecords instanceof File
-          ? await uploadFile(formData.vaccinationRecords, "vaccinationRecords")
-          : formData.vaccinationRecords;
-
+  
+      const spayCertificateURL = formData.spayCertificate instanceof File
+        ? await uploadFile(formData.spayCertificate, "spayCertificates")
+        : formData.spayCertificate;
+  
+      const vaccinationRecordsURL = formData.vaccinationRecords instanceof File
+        ? await uploadFile(formData.vaccinationRecords, "vaccinationRecords")
+        : formData.vaccinationRecords;
+  
+      const petData = {
+        name: formData.name,
+        age: formData.age,
+        breed: formData.breed,
+        petPicture: petPictureURL,
+        additionalPhotos: additionalPhotosURLs, // Ensure this is an array of URLs
+        description: formData.description,
+        gender: formData.gender,
+        medicalRecords: medicalRecordsURL,
+        spayCertificate: spayCertificateURL,
+        vaccinationRecords: vaccinationRecordsURL,
+        size: formData.size,
+        petType: formData.petType,
+        timestamp: new Date(),
+      };
+  
       if (editingPetId) {
-        await updateDoc(doc(db, "adoption", editingPetId), {
-          name: formData.name,
-          age: formData.age,
-          breed: formData.breed,
-          petPicture: petPictureURL,
-          additionalPhotos: additionalPhotosURLs,
-          description: formData.description,
-          gender: formData.gender,
-          medicalRecords: medicalRecordsURL || formData.medicalRecords,
-          spayCertificate: spayCertificateURL || formData.spayCertificate,
-          vaccinationRecords: vaccinationRecordsURL || formData.vaccinationRecords,
-          size: formData.size,
-          petType: formData.petType,
-          timestamp: new Date(),
-        });
+        await updateDoc(doc(db, "adoption", editingPetId), petData);
         toast.success("Pet updated successfully!");
       } else {
-        console.log("Adding new pet record"); // Debug log
-        await addDoc(collection(db, "adoption"), {
-          name: formData.name,
-          age: formData.age,
-          breed: formData.breed,
-          petPicture: petPictureURL,
-          additionalPhotos: additionalPhotosURLs,
-          description: formData.description,
-          gender: formData.gender,
-          medicalRecords: medicalRecordsURL,
-          spayCertificate: spayCertificateURL,
-          vaccinationRecords: vaccinationRecordsURL,
-          size: formData.size,
-          petType: formData.petType,
-          timestamp: new Date(),
-        });
+        await addDoc(collection(db, "adoption"), petData);
         toast.success("Pet added successfully!");
       }
-
+  
       setShowModal(false);
       setEditingPetId(null);
       setFormData({
@@ -155,7 +141,7 @@ const PetsAdoption = () => {
       console.error(error);
       toast.error("An error occurred!");
     } finally {
-      setLoading(false); // End loading
+      setLoading(false);
     }
   };
 

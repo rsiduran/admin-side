@@ -32,6 +32,7 @@ const RescueRequest = () => {
             lastName: doc.data()?.lastName || "N/A",
             email: doc.data()?.email || "N/A",
             phoneNumber: doc.data()?.phoneNumber || "N/A",
+            transactionNumber: doc.data()?.transactionNumber || "N/A",
             reportStatus: doc.data()?.reportStatus || "N/A",
             timestamp: doc.data()?.timestamp
               ? new Date(doc.data().timestamp.seconds * 1000).toLocaleString()
@@ -111,9 +112,11 @@ const RescueRequest = () => {
           <table className="table-auto w-full text-sm text-gray-800">
             <thead className="bg-gray-100 text-gray-700 uppercase">
               <tr>
+              <th className="px-6 py-3 text-left">Transaction Number</th>
                 <th className="px-6 py-3 text-left">Name</th>
-                <th className="px-6 py-3 text-left">Email</th>
+                {/* <th className="px-6 py-3 text-left">Email</th> */}
                 <th className="px-6 py-3 text-left">Phone Number</th>
+                <th className="px-6 py-3 text-left">Transaction Number</th>
                 <th className="px-6 py-3 text-left">Status</th>
                 <th className="px-6 py-3 text-left">Timestamp</th>
                 <th className="px-6 py-3 text-left">Actions</th>
@@ -126,9 +129,11 @@ const RescueRequest = () => {
                     key={record.id}
                     className="odd:bg-white even:bg-gray-50 hover:bg-blue-50"
                   >
+                    <td className="px-6 py-3 text-left">{record.transactionNumber}</td>
                     <td className="px-6 py-3 text-left">{record.firstName} {record.lastName}</td>
-                    <td className="px-6 py-3 text-left">{record.email}</td>
+                    {/* <td className="px-6 py-3 text-left">{record.email}</td> */}
                     <td className="px-6 py-3 text-left">{record.phoneNumber}</td>
+                    <td className="px-6 py-3 text-left">{record.transactionNumber}</td>
                     <td className="px-6 py-3 text-left">{record.reportStatus}</td>
                     <td className="px-6 py-3 text-left">{record.timestamp}</td>
                     <td className="px-6 py-3 text-center space-x-2">
