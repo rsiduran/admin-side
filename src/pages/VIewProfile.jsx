@@ -246,7 +246,7 @@ const updateReportStatus = async (newStatus, rescuer) => {
         <h2 className="text-2xl font-semibold mb-2">Media</h2>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           {pet.media.map((item, index) => (
-            <div key={index} className="relative w-full h-32 rounded-md shadow overflow-hidden">
+            <div key={index} className="relative w-full h-60 rounded-md shadow overflow-hidden">
               {item.type === "image" ? (
                 <img
                   src={item.uri}
