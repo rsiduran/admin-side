@@ -7,6 +7,8 @@ import {
   addDoc,
   doc,
   updateDoc,
+  orderBy,
+  query
 } from "firebase/firestore";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEye, faEdit } from "@fortawesome/free-solid-svg-icons";
@@ -178,7 +180,11 @@ const PetsAdoption = () => {
   useEffect(() => {
     const fetchAdoptionRecords = async () => {
       try {
-        const querySnapshot = await getDocs(collection(db, "adoption"));
+        const adoptionQuery = query(
+          collection(db, "adoption"),
+          orderBy("timestamp", "desc")
+        );
+        const querySnapshot = await getDocs(adoptionQuery);
         const data = querySnapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
@@ -191,10 +197,14 @@ const PetsAdoption = () => {
         console.error("Error fetching adoption records:", error);
       }
     };
-
+    
     const fetchAdoptedRecords = async () => {
       try {
-        const querySnapshot = await getDocs(collection(db, "adopted"));
+        const adoptedQuery = query(
+          collection(db, "adopted"),
+          orderBy("timestamp", "desc")
+        );
+        const querySnapshot = await getDocs(adoptedQuery);
         const data = querySnapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),

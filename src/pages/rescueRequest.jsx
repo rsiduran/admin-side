@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import AppSideBar from "../components/AppSideBar";
 import { db } from "../firebase";
-import { collection, getDocs, doc, deleteDoc } from "firebase/firestore";
+import { collection, getDocs, doc, deleteDoc, orderBy, query } from "firebase/firestore";
 import { ToastContainer, toast } from "react-toastify";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEye, faTrashAlt } from "@fortawesome/free-solid-svg-icons";
@@ -21,13 +21,14 @@ const RescueRequest = () => {
     // Function to fetch data from the rescue collection
     const fetchRecords = async () => {
       try {
-        const querySnapshot = await getDocs(collection(db, "rescue"));
+        const q = query(collection(db, "rescue"), orderBy("timestamp", "desc"));
+        const querySnapshot = await getDocs(q);
         const allData = [];
-
+    
         querySnapshot.forEach((doc) => {
           allData.push({
             id: doc.id,
-            collectionName: "rescue", // Updated collection name
+            collectionName: "rescue",
             firstName: doc.data()?.firstName || "N/A",
             lastName: doc.data()?.lastName || "N/A",
             email: doc.data()?.email || "N/A",
@@ -39,15 +40,15 @@ const RescueRequest = () => {
               : "N/A",
           });
         });
-
+    
         setRecords(allData);
       } catch (error) {
         console.error("Error fetching records:", error);
       }
     };
-
-    fetchRecords();
-  }, []);
+    
+      fetchRecords();
+    }, []);
 
   // Filter records based on the search term
   const filteredRecords = records.filter((record) =>

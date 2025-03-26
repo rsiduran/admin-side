@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import AppSideBar from "../components/AppSideBar";
 import { db } from "../firebase";
-import { collection, getDocs, doc, deleteDoc } from "firebase/firestore";
+import { collection, getDocs, doc, deleteDoc,orderBy, query } from "firebase/firestore";
 import { ToastContainer, toast } from "react-toastify";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEye, faTrashAlt } from "@fortawesome/free-solid-svg-icons";
@@ -21,9 +21,14 @@ const AdoptionRequest = () => {
     // Function to fetch data from the adoptionApplication collection
     const fetchRecords = async () => {
       try {
-        const querySnapshot = await getDocs(collection(db, "adoptionApplication"));
+        const adoptionAppQuery = query(
+          collection(db, "adoptionApplication"),
+          orderBy("timestamp", "desc") // Sort by latest
+        );
+  
+        const querySnapshot = await getDocs(adoptionAppQuery);
         const allData = [];
-
+  
         querySnapshot.forEach((doc) => {
           allData.push({
             id: doc.id,
@@ -40,13 +45,13 @@ const AdoptionRequest = () => {
               : "N/A",
           });
         });
-
+  
         setRecords(allData);
       } catch (error) {
         console.error("Error fetching records:", error);
       }
     };
-
+  
     fetchRecords();
   }, []);
 

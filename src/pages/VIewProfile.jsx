@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { db } from "../firebase";
 import { doc, getDoc } from "firebase/firestore";
 import AppSideBar from '../components/AppSideBar';
-import { updateDoc, serverTimestamp, setDoc, collection, query, where, getDocs, addDoc,} from "firebase/firestore";
+import { updateDoc, serverTimestamp, setDoc, collection, query, where, getDocs, addDoc,deleteDoc} from "firebase/firestore";
 
 const ViewProfile = () => {
   const { collectionName, id } = useParams();
@@ -127,14 +127,22 @@ const ViewProfile = () => {
                 additionalPhotos: petData.additionalPhotos || "",
             });
 
-            alert("Pet details have been added to the adopted collection.");
-        }
+            // Delete the pet from adoption collection using petId field
+            if (petData.petId) {
+              const petToDeleteRef = doc(db, "adoption", petData.petId);
+              await deleteDoc(petToDeleteRef);
+              console.log(`Deleted pet with ID ${petData.petId} from adoption collection.`);
+            }
+
+            alert("Pet details moved to adopted collection and removed from adoption.");
+          }
+        
 
         setPet((prev) => ({
             ...prev,
             applicationStatus: newStatus,
             viewed: "NO",
-            personnel, // Ensure personnel updates in state
+            personnel,
         }));
 
         alert("Status updated successfully!");
@@ -394,7 +402,7 @@ const updateReportStatus = async (newStatus, rescuer) => {
               key={index}
               src={photo}
               alt={`Additional ${index + 1}`}
-              className="w-full h-32 object-cover rounded-md shadow cursor-pointer"
+              className="w-full h-70 object-cover rounded-md shadow cursor-pointer"
               onClick={() => window.open(photo, "_blank")}
             />
           ))}
@@ -412,7 +420,7 @@ const updateReportStatus = async (newStatus, rescuer) => {
                 key={field}
                 src={pet[field]}
                 alt={field}
-                className="w-32 h-32 object-cover rounded-md shadow cursor-pointer"
+                className="w-full h-60 object-cover rounded-md shadow cursor-pointer"
                 onClick={() => window.open(pet[field], "_blank")}
               />
             )
@@ -558,17 +566,17 @@ const updateReportStatus = async (newStatus, rescuer) => {
     <div className="flex flex-wrap justify-center gap-6">
       {pet.vaccination && (
         <a href={pet.vaccination} target="_blank" rel="noopener noreferrer">
-          <img src={pet.vaccination} alt="Vaccination Record" className="w-48 h-36 object-cover rounded shadow-md" />
+          <img src={pet.vaccination} alt="Vaccination Record" className="w-full h-60 object-cover rounded shadow-md" />
         </a>
       )}
       {pet.spay && (
         <a href={pet.spay} target="_blank" rel="noopener noreferrer">
-          <img src={pet.spay} alt="Spay Record" className="w-48 h-36 object-cover rounded shadow-md" />
+          <img src={pet.spay} alt="Spay Record" className="w-full h-60 object-cover rounded shadow-md" />
         </a>
       )}
       {pet.medical && (
         <a href={pet.medical} target="_blank" rel="noopener noreferrer">
-          <img src={pet.medical} alt="Medical Record" className="w-48 h-36 object-cover rounded shadow-md" />
+          <img src={pet.medical} alt="Medical Record" className="w-full h-60 object-cover rounded shadow-md" />
         </a>
       )}
     </div>
@@ -582,7 +590,7 @@ const updateReportStatus = async (newStatus, rescuer) => {
       <p><strong>Last Updated:</strong> {formatDate(pet.statusChange)}</p>
 
       {/* Remarks input field for all statuses except REJECTED */}
-      {pet.applicationStatus !== "REJECTED" && (
+      {pet.applicationStatus !== "REJECTED" && pet.applicationStatus !== "COMPLETED" && (
         <div className="mt-3">
           <label className="block font-semibold">Remarks (Optional):</label>
           <textarea 

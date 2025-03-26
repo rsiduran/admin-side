@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import AppSideBar from "../components/AppSideBar";
 import { db } from "../firebase";
-import { collection, getDocs, doc, deleteDoc } from "firebase/firestore";
+import { collection, getDocs, doc, deleteDoc, query, orderBy } from "firebase/firestore";
 import { ToastContainer, toast } from "react-toastify";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEye, faTrashAlt } from "@fortawesome/free-solid-svg-icons";
@@ -24,37 +24,40 @@ const PetsRegistry = () => {
     const fetchRecords = async () => {
       try {
         const collections = ["missing", "wandering", "found"];
-        const allData = [];
-
+        let allData = [];
+    
         await Promise.all(
           collections.map(async (col) => {
-            const querySnapshot = await getDocs(collection(db, col));
+            const q = query(collection(db, col), orderBy("timestamp", "desc"));
+            const querySnapshot = await getDocs(q);
+    
             querySnapshot.forEach((doc) => {
               allData.push({
                 id: doc.id,
-                collectionName: col, // To identify the collection the record came from
+                collectionName: col,
                 name: doc.data()?.name || "N/A",
                 breed: doc.data()?.breed || "N/A",
                 petType: doc.data()?.petType || "N/A",
                 postType: doc.data()?.postType || "N/A",
                 timestamp: doc.data()?.timestamp
-                  ? new Date(
-                      doc.data().timestamp.seconds * 1000
-                    ).toLocaleString()
+                  ? new Date(doc.data().timestamp.seconds * 1000).toLocaleString()
                   : "N/A",
               });
             });
           })
         );
-
+    
+        // Optional: Re-sort across all collections by timestamp after flattening
+        allData.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    
         setRecords(allData);
       } catch (error) {
         console.error("Error fetching records:", error);
       }
     };
-
-    fetchRecords();
-  }, []);
+  
+      fetchRecords();
+    }, []);
 
   // Filter records based on the search term
   const filteredRecords = records.filter((record) =>
