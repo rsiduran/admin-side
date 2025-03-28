@@ -8,9 +8,11 @@ import PetsRegistry from './pages/petsRegistry';
 import AdoptionRequest from './pages/adoptionRequest';
 import PetsAdoption from './pages/petsAdoption';
 import RescueRequest from './pages/rescueRequest';
+import UploadArticlesVet from './pages/uploadArticlesVet';
 import History from './pages/history';
 import UserProfile from './pages/UserProfile';
 import ViewProfile from './pages/VIewProfile';
+
 
 function App() {
   const navigate = useNavigate();
@@ -51,6 +53,10 @@ function App() {
       <Route
         path="/RescueRequest"
         element={isLoggedIn ? <RescueRequest /> : <Navigate to="/" />}
+      />
+      <Route
+        path="/uploadArticlesVet"
+        element={isLoggedIn ? <UploadArticlesVet /> : <Navigate to="/" />}
       />
       <Route
         path="/History"

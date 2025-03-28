@@ -29,4 +29,8 @@ export const History = (navigate) => {
   navigate('/history');
 };
 
+export const UploadArticlesVet = (navigate) => {
+  navigate('/uploadArticlesVet');
+};
+
 

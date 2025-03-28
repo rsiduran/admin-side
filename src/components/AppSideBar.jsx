@@ -9,6 +9,7 @@ import {
   FaClipboardList,
   FaHandsHelping,
   FaHistory,
+  FaFileUpload, // Added icon for Upload Articles/Vet
 } from "react-icons/fa";
 import { handleLogout } from "../auth/logout";
 import {
@@ -19,6 +20,7 @@ import {
   RescueRequest,
   UsersNavigate,
   WanderPetsRegistryNavigate,
+  UploadArticlesVet, // Add navigation function for Upload Articles/Vet
 } from "../auth/navigate";
 
 const AppSideBar = () => {
@@ -57,6 +59,7 @@ const AppSideBar = () => {
             { icon: <FaClipboardList className="text-lg" />, text: "Adoption Application", onClick: () => AdoptionRequest(navigate) },
             { icon: <FaHandsHelping className="text-lg" />, text: "Rescue Request", onClick: () => RescueRequest(navigate) },
             { icon: <FaHistory className="text-lg" />, text: "History", onClick: () => History(navigate) },
+            { icon: <FaFileUpload className="text-lg" />, text: "Upload Articles/Clinic", onClick: () => UploadArticlesVet(navigate) }, // Added Upload Articles/Vet
             { icon: <FaSignOutAlt className="text-lg" />, text: "Logout", onClick: () => handleLogout(navigate) },
           ].map((item, index) => (
             <li

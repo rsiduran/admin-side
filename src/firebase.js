@@ -17,6 +17,21 @@ const firebaseConfig = {
   measurementId: "G-WGV4V1ESYH",
 };
 
+const firebaseConfig2 = {
+  apiKey: "AIzaSyDukiaImMg8ksap2uOb5WnfN8UK-1LPlO4",
+  authDomain: "wander-pets-aac0c.firebaseapp.com",
+  projectId: "wander-pets-aac0c",
+  storageBucket: "wander-pets-aac0c.firebasestorage.app",
+  messagingSenderId: "998232988350",
+  appId: "1:998232988350:web:87488c862ca652ce939cef",
+  measurementId: "G-P0CHBJGRBW"
+};
+
+const app2 = initializeApp(firebaseConfig2, "app2");
+const db2 = getFirestore(app2); 
+
+
+
 // Initialize Firebase app
 const app = initializeApp(firebaseConfig);
 
@@ -30,4 +45,4 @@ const auth = getAuth(app);
 const analytics = getAnalytics(app);
 
 // Export the initialized services for use in your project
-export { db, auth, analytics };
+export { db, db2, auth, analytics };
