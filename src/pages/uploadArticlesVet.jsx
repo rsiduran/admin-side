@@ -10,22 +10,17 @@ const UploadArticlesVet = () => {
   const [formData, setFormData] = useState({
     title: "",
     author: "",
-    coverImage: null,
+    coverImage: "",
     link: "",
     clinicName: "",
     address: "",
-    picture: null,
+    picture: "",
     snsLink: "",
   });
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
-  };
-
-  const handleFileChange = (e) => {
-    const { name, files } = e.target;
-    setFormData({ ...formData, [name]: files[0] });
   };
 
   const getFormattedTimestamp = () => {
@@ -53,14 +48,14 @@ const UploadArticlesVet = () => {
           ? {
               title: formData.title,
               author: formData.author,
-              coverImage: formData.coverImage ? formData.coverImage.name : null,
+              coverImage: formData.coverImage,
               link: formData.link,
               createdAt: getFormattedTimestamp(), // Add createdAt timestamp
             }
           : {
               clinicName: formData.clinicName,
               address: formData.address,
-              picture: formData.picture ? formData.picture.name : null,
+              picture: formData.picture,
               snsLink: formData.snsLink,
               timestamp: getFormattedTimestamp(), // Add timestamp field
             };
@@ -73,11 +68,11 @@ const UploadArticlesVet = () => {
       setFormData({
         title: "",
         author: "",
-        coverImage: null,
+        coverImage: "",
         link: "",
         clinicName: "",
         address: "",
-        picture: null,
+        picture: "",
         snsLink: "",
       });
       setSelection("article");
@@ -141,17 +136,18 @@ const UploadArticlesVet = () => {
                 />
               </div>
 
-              {/* Cover Image */}
+              {/* Cover Image URL */}
               <div>
                 <label className="block text-sm font-medium text-gray-700">
-                  Cover Image (jpeg or png format)
+                  Cover Image URL
                 </label>
                 <input
-                  type="file"
+                  type="url"
                   name="coverImage"
-                  accept="image/jpeg, image/png"
-                  onChange={handleFileChange}
+                  value={formData.coverImage}
+                  onChange={handleInputChange}
                   className="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  placeholder="https://example.com/image.jpg"
                 />
               </div>
 
@@ -161,11 +157,12 @@ const UploadArticlesVet = () => {
                   Link
                 </label>
                 <input
-                  type="text"
+                  type="url"
                   name="link"
                   value={formData.link}
                   onChange={handleInputChange}
                   className="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  placeholder="https://example.com"
                 />
               </div>
             </>
@@ -201,17 +198,18 @@ const UploadArticlesVet = () => {
                 />
               </div>
 
-              {/* Picture */}
+              {/* Picture URL */}
               <div>
                 <label className="block text-sm font-medium text-gray-700">
-                  Picture (jpeg or png format)
+                  Picture URL
                 </label>
                 <input
-                  type="file"
+                  type="url"
                   name="picture"
-                  accept="image/jpeg, image/png"
-                  onChange={handleFileChange}
+                  value={formData.picture}
+                  onChange={handleInputChange}
                   className="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  placeholder="https://example.com/image.jpg"
                 />
               </div>
 
@@ -221,11 +219,12 @@ const UploadArticlesVet = () => {
                   SNS Link
                 </label>
                 <input
-                  type="text"
+                  type="url"
                   name="snsLink"
                   value={formData.snsLink}
                   onChange={handleInputChange}
                   className="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                  placeholder="https://example.com"
                 />
               </div>
             </>
