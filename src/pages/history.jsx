@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import AppSideBar from "../components/AppSideBar";
 import { db } from "../firebase";
-import { collection, getDocs, doc, deleteDoc, orderBy, query } from "firebase/firestore";
+import { collection, getDocs, doc, deleteDoc, orderBy, query, updateDoc } from "firebase/firestore";
 import { ToastContainer, toast } from "react-toastify";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEye, faTrashAlt, faFilter, faTimes } from "@fortawesome/free-solid-svg-icons";
@@ -56,12 +56,12 @@ const History = () => {
   useEffect(() => {
     const fetchRecords = async () => {
       try {
-        const collections = ["missingHistory", "wanderingHistory", "foundHistory"];
+        const collections = ["lostFoundHistory", "userPetsHistory","rescueHistory", "adoptionApplicationHistory"];
         const allData = [];
 
         await Promise.all(
           collections.map(async (col) => {
-            const q = query(collection(db, col), orderBy("removedAt", "desc"));
+            const q = query(collection(db, col), orderBy("deletedAt", "desc"));
             const querySnapshot = await getDocs(q);
             querySnapshot.forEach((doc) => {
               allData.push({
@@ -70,9 +70,9 @@ const History = () => {
                 name: doc.data()?.name || "N/A",
                 breed: doc.data()?.breed || "Unknown",
                 petType: doc.data()?.petType || "Unknown",
-                postType: doc.data()?.postType || "N/A",
-                timestamp: doc.data()?.removedAt
-                  ? new Date(doc.data().removedAt.seconds * 1000).toLocaleString()
+                postType: doc.data()?.postType || doc.data()?.applicationStatus || doc.data()?.reportStatus ||"N/A",
+                timestamp: doc.data()?.deletedAt
+                  ? new Date(doc.data().deletedAt.seconds * 1000).toLocaleString()
                   : "N/A",
               });
             });
@@ -300,16 +300,34 @@ const History = () => {
                     <td className="px-6 py-3 text-left">{record.timestamp}</td>
                     <td className="px-6 py-3 text-left">
                       <div className="flex space-x-2">
-                        <button
-                          onClick={() =>
-                            navigate(`/view-profile/${record.collectionName}/${record.id}`)
+                      <button
+                        onClick={async () => {
+                          const docRef = doc(db, record.collectionName, record.id); // Firestore document reference
+
+                          try {
+                            await updateDoc(docRef, { viewed: "YES" }); // Update Firestore viewed status
+
+                            // Update local state to remove the red indicator immediately
+                            setRecords(prevRecords =>
+                              prevRecords.map(r =>
+                                r.id === record.id && r.collectionName === record.collectionName
+                                  ? { ...r, viewed: "YES" }
+                                  : r
+                              )
+                            );
+
+                            // Navigate to the respective profile page
+                            navigate(`/view-profile/${record.collectionName}/${record.id}`);
+                          } catch (error) {
+                            console.error("Error updating viewed status:", error);
                           }
-                          className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 flex items-center"
-                        >
-                          <FontAwesomeIcon icon={faEye} className="mr-2" />
-                          View
-                        </button>
-                        <button
+                        }}
+                        className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 flex items-center"
+                      >
+                        <FontAwesomeIcon icon={faEye} className="mr-2" />
+                        View
+                      </button>
+                        {/* <button
                           onClick={() => {
                             setSelectedRecord(record);
                             setShowModal(true);
@@ -318,7 +336,7 @@ const History = () => {
                         >
                           <FontAwesomeIcon icon={faTrashAlt} className="mr-2" />
                           Delete
-                        </button>
+                        </button> */}
                       </div>
                     </td>
                   </tr>

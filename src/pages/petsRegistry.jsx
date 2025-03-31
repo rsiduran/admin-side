@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import AppSideBar from "../components/AppSideBar";
 import { db } from "../firebase";
-import { collection, getDocs, doc, deleteDoc, query, orderBy } from "firebase/firestore";
+import { collection, getDocs, doc, deleteDoc, query, orderBy, getDoc, addDoc, where, updateDoc } from "firebase/firestore";
 import { ToastContainer, toast } from "react-toastify";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faEye, faTrashAlt, faFilter, faTimes } from "@fortawesome/free-solid-svg-icons";
@@ -132,19 +132,68 @@ const PetsRegistry = () => {
  
   const handleDelete = async (record) => {
     try {
-      await deleteDoc(doc(db, record.collectionName, record.id));
-      setRecords((prevRecords) =>
-        prevRecords.filter((r) => r.id !== record.id)
+      const docRef = doc(db, record.collectionName, record.id);
+      const docSnapshot = await getDoc(docRef);
+      
+      if (!docSnapshot.exists()) {
+        throw new Error("Document not found");
+      }
+  
+      // Check if record already exists in history
+      const historyQuery = query(
+        collection(db, "lostFoundHistory"),
+        where("originalId", "==", record.id),
+        where("originalCollection", "==", record.collectionName)
       );
+      const historySnapshot = await getDocs(historyQuery);
+  
+      if (!historySnapshot.empty) {
+        throw new Error("This record already exists in history");
+      }
+  
+      // Format the timestamp
+      const now = new Date();
+      const options = { 
+        month: 'long', 
+        day: 'numeric', 
+        year: 'numeric', 
+        hour: '2-digit', 
+        minute: '2-digit', 
+        second: '2-digit', 
+        timeZoneName: 'short', 
+        timeZone: 'Asia/Manila'
+      };
+      const formattedDate = now.toLocaleString('en-US', options);
+      
+      // Prepare history record
+      const historyRecord = {
+        ...docSnapshot.data(),
+        originalCollection: record.collectionName,
+        originalId: record.id,
+        postType: record.collectionName.toUpperCase(),
+        deletedAt: formattedDate,
+        viewed: "NO",
+        timestamp: now.getTime()
+      };
+      
+      // Add to history
+      await addDoc(collection(db, "lostFoundHistory"), historyRecord);
+      
+      // Delete original
+      await deleteDoc(docRef);
+      
+      // Update state
+      setRecords(prev => prev.filter(r => r.id !== record.id));
       setShowModal(false);
-      toast.success("Record deleted successfully!");
+      toast.success("Record archived to history and deleted!");
+  
     } catch (error) {
-      console.error("Error deleting record:", error);
-      toast.error("Error deleting the record.");
+      console.error("Deletion error:", error);
+      toast.error(`Deletion failed: ${error.message}`);
+      setShowModal(false);
     }
   };
-
- 
+  
   const handleCancelDelete = () => {
     setShowModal(false);
     toast.info("Deletion cancelled.");
@@ -302,15 +351,26 @@ const PetsRegistry = () => {
                     <td className="px-6 py-3 text-left">{record.timestamp}</td>
                     <td className="px-6 py-3 text-left">
                       <div className="flex space-x-2">
-                        <button
-                          onClick={() =>
-                            navigate(`/view-profile/${record.collectionName}/${record.id}`)
+                      <button
+                        onClick={async () => {
+                          try {
+                            const docRef = doc(db, record.collectionName, record.id);
+                            await updateDoc(docRef, { viewed: "YES" });
+                            setRecords((prevRecords) =>
+                              prevRecords.map((r) =>
+                                r.id === record.id ? { ...r, viewed: "YES" } : r
+                              )
+                            );
+                            navigate(`/view-profile/${record.collectionName}/${record.id}`);
+                          } catch (error) {
+                            console.error("Error updating viewed status:", error);
                           }
-                          className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 flex items-center"
-                        >
-                          <FontAwesomeIcon icon={faEye} className="mr-2" />
-                          View
-                        </button>
+                        }}
+                        className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 flex items-center"
+                      >
+                        <FontAwesomeIcon icon={faEye} className="mr-2" />
+                        View
+                      </button>
                         <button
                           onClick={() => {
                             setSelectedRecord(record);

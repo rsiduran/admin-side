@@ -240,7 +240,7 @@ const updateReportStatus = async (newStatus, rescuer) => {
     <div className="max-w-4xl mx-auto p-6 bg-white shadow-lg rounded-lg">
         <AppSideBar />
       {/* Pet Info */}
-      {["missing", "wandering", "found"].includes(collectionName) && (
+      {["missing", "wandering", "found", "lostFoundHistory"].includes(collectionName) && (
   <>
     <div className="flex flex-col md:flex-row">
       {/* Pet Image */}
@@ -317,8 +317,8 @@ const updateReportStatus = async (newStatus, rescuer) => {
     </div>
   </>
 )}
-
-{typeof pet.latitude === "number" &&
+{(collectionName === "missing" || collectionName === "wandering" || collectionName === "found") &&
+typeof pet.latitude === "number" &&
  typeof pet.longitude === "number" &&
  pet.locationName && (
   <div className="mt-6">
@@ -488,7 +488,7 @@ const updateReportStatus = async (newStatus, rescuer) => {
   </>
 )}
 
-{collectionName === "adoptionApplication" && (
+{(collectionName === "adoptionApplication" || collectionName === "adoptionApplicationHistory") && (
   <>
     <h1 className="text-3xl font-bold mb-4">Adoption Application</h1>
     <p><strong> {pet.transactionNumber || "N/A"}</strong></p>
@@ -518,7 +518,7 @@ const updateReportStatus = async (newStatus, rescuer) => {
     )}
     {pet.validID && (
       <a href={pet.validID} target="_blank" rel="noopener noreferrer">
-        <img src={pet.validID} alt="Valid ID" className="w-36 h-36 object-cover rounded shadow-md" />
+        <img src={pet.validID} alt="Valid ID" className="w-full h-36 object-cover rounded shadow-md" />
       </a>
     )}
   </div>
@@ -647,82 +647,86 @@ const updateReportStatus = async (newStatus, rescuer) => {
       <p><strong>Current Status:</strong> {pet.applicationStatus || "PENDING"}</p>
       <p><strong>Last Updated:</strong> {formatDate(pet.statusChange)}</p>
 
-      {/* Remarks input field for all statuses except REJECTED */}
-      {pet.applicationStatus !== "REJECTED" && pet.applicationStatus !== "COMPLETED" && (
-        <div className="mt-3">
-          <label className="block font-semibold">Remarks (Optional):</label>
-          <textarea 
-            className="w-full mt-1 p-2 border rounded"
-            value={remarks}
-            onChange={(e) => setRemarks(e.target.value)}
-          />
-        </div>
-      )}
+      {collectionName === "adoptionApplication" && (
+        <>
+          {/* Remarks input field for all statuses except REJECTED */}
+          {pet.applicationStatus !== "REJECTED" && pet.applicationStatus !== "COMPLETED" && (
+            <div className="mt-3">
+              <label className="block font-semibold">Remarks (Optional):</label>
+              <textarea 
+                className="w-full mt-1 p-2 border rounded"
+                value={remarks}
+                onChange={(e) => setRemarks(e.target.value)}
+              />
+            </div>
+          )}
 
-      {/* Additional fields for APPROVED status */}
-      {pet.applicationStatus === "APPROVED" && (
-        <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block font-semibold">Adoption Date:</label>
-            <input 
-              type="text" 
-              className="w-full mt-1 p-2 border rounded bg-gray-100" 
-              value={new Date().toLocaleString()} 
-              readOnly 
-            />
-          </div>
-          <div>
-            <label className="block font-semibold">Personnel (Required):</label>
-            <input 
-              type="text" 
-              className="w-full mt-1 p-2 border rounded"
-              value={personnel}
-              onChange={(e) => setPersonnel(e.target.value)}
-              required
-            />
-          </div>
-        </div>
-      )}
+          {/* Additional fields for APPROVED status */}
+          {pet.applicationStatus === "APPROVED" && (
+            <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block font-semibold">Adoption Date:</label>
+                <input 
+                  type="text" 
+                  className="w-full mt-1 p-2 border rounded bg-gray-100" 
+                  value={new Date().toLocaleString()} 
+                  readOnly 
+                />
+              </div>
+              <div>
+                <label className="block font-semibold">Personnel (Required):</label>
+                <input 
+                  type="text" 
+                  className="w-full mt-1 p-2 border rounded"
+                  value={personnel}
+                  onChange={(e) => setPersonnel(e.target.value)}
+                  required
+                />
+              </div>
+            </div>
+          )}
 
-      {/* Action Buttons */}
-      <div className="mt-4 flex space-x-2">
-        {pet.applicationStatus === "PENDING" && (
-          <button 
-            className="px-4 py-2 text-white bg-blue-500 rounded" 
-            onClick={() => updateApplicationStatus("REVIEWING")}
-          >
-            Start Reviewing
-          </button>
-        )}
-        {pet.applicationStatus === "REVIEWING" && (
-          <>
-            <button 
-              className="px-4 py-2 text-white bg-green-500 rounded" 
-              onClick={() => updateApplicationStatus("APPROVED")}
-            >
-              Approve
-            </button>
-            <button 
-              className="px-4 py-2 text-white bg-red-500 rounded" 
-              onClick={() => updateApplicationStatus("REJECTED")}
-            >
-              Reject
-            </button>
-          </>
-        )}
-        {pet.applicationStatus === "APPROVED" && (
-          <button 
-            className="px-4 py-2 text-white bg-purple-500 rounded" 
-            onClick={() => updateApplicationStatus("COMPLETED")}
-          >
-            Mark as Completed
-          </button>
-        )}
-      </div>
+          {/* Action Buttons */}
+          <div className="mt-4 flex space-x-2">
+            {pet.applicationStatus === "PENDING" && (
+              <button 
+                className="px-4 py-2 text-white bg-blue-500 rounded" 
+                onClick={() => updateApplicationStatus("REVIEWING")}
+              >
+                Start Reviewing
+              </button>
+            )}
+            {pet.applicationStatus === "REVIEWING" && (
+              <>
+                <button 
+                  className="px-4 py-2 text-white bg-green-500 rounded" 
+                  onClick={() => updateApplicationStatus("APPROVED")}
+                >
+                  Approve
+                </button>
+                <button 
+                  className="px-4 py-2 text-white bg-red-500 rounded" 
+                  onClick={() => updateApplicationStatus("REJECTED")}
+                >
+                  Reject
+                </button>
+              </>
+            )}
+            {pet.applicationStatus === "APPROVED" && (
+              <button 
+                className="px-4 py-2 text-white bg-purple-500 rounded" 
+                onClick={() => updateApplicationStatus("COMPLETED")}
+              >
+                Mark as Completed
+              </button>
+            )}
+          </div>
+        </>
+      )}
     </div>
   </>
 )}
-  {collectionName === "rescue" && pet && (
+  {(collectionName === "rescue" || collectionName === "rescueHistory") && pet && (
   <div className="mt-6 p-6 bg-white shadow-md rounded-lg">
     {/* Report Info Section */}
     <div className="flex flex-wrap md:flex-nowrap gap-6 mb-6">
@@ -785,6 +789,42 @@ const updateReportStatus = async (newStatus, rescuer) => {
       )}
     </div>
 
+    {typeof pet.latitude === "number" &&
+ typeof pet.longitude === "number" &&
+ pet.locationName && (
+  <div className="mt-6">
+    <h2 className="text-2xl font-semibold mb-2">Pet Location</h2>
+    <div className="h-80 w-full rounded-lg overflow-hidden shadow-md relative">
+      <MapContainer
+        center={[pet.latitude, pet.longitude]}
+        zoom={17}
+        scrollWheelZoom={false}
+        style={{ height: "100%", width: "100%" }}
+        className="rounded-lg"
+        whenCreated={(map) => {
+          // This ensures the map fits the view properly after initialization
+          setTimeout(() => {
+            map.invalidateSize();
+          }, 0);
+        }}
+      >
+        <TileLayer 
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        />
+        <Marker position={[pet.latitude, pet.longitude]} icon={customIcon}>
+          <Popup>
+            <strong>{pet.locationName}</strong>
+          </Popup>
+        </Marker>
+      </MapContainer>
+    </div>
+  </div>
+)}
+
+    {collectionName === "rescue" && (
+        <>
+
     {/* Status Buttons */}
     <div className="mt-6">
       {pet.reportStatus === "PENDING" && (
@@ -820,6 +860,8 @@ const updateReportStatus = async (newStatus, rescuer) => {
         className="w-full border rounded p-2"
       />
     </div>
+    </>
+)}
   </div>
 )}
       
