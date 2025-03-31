@@ -26,7 +26,7 @@ const PetsAdoption = () => {
   const [editingPetId, setEditingPetId] = useState(null);
   const [formData, setFormData] = useState({
     name: "",
-    age: "",
+    age: "0-11 months",
     breed: "",
     petPicture: null,
     additionalPhotos: [],
@@ -127,7 +127,7 @@ const PetsAdoption = () => {
       setEditingPetId(null);
       setFormData({
         name: "",
-        age: "",
+        age: "0-11 months",
         breed: "",
         petPicture: null,
         additionalPhotos: [],
@@ -332,38 +332,67 @@ const PetsAdoption = () => {
                         >
                           Age
                         </label>
-                        <input
-                          type="text"
+                        <select
                           id="age"
                           name="age"
-                          placeholder="Enter pet's age"
                           value={formData.age}
                           onChange={handleChange}
                           className="w-full px-3 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-300"
-                          required
-                        />
+                        >
+                          <option value="0-11 months">0-11 months</option>
+                          <option value="1-5 years">1-5 years</option>
+                          <option value="6 years and up">6 years and up</option>
+                        </select>
                       </div>
                     </div>
 
                     {/* Breed and Description */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                       <div>
-                        <label
-                          htmlFor="breed"
-                          className="block text-gray-700 font-medium mb-1"
-                        >
-                          Breed
-                        </label>
-                        <input
-                          type="text"
+                      <label htmlFor="breed" className="block text-sm font-medium text-gray-700 mt-3">
+                        Breed
+                      </label>
+                      {formData.petType === "Dog" ? (
+                        <select
                           id="breed"
                           name="breed"
-                          placeholder="Enter pet's breed"
                           value={formData.breed}
                           onChange={handleChange}
                           className="w-full px-3 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-300"
                           required
-                        />
+                        >
+                          <option value="">Select dog breed</option>
+                          {["Unknown", "Aspin", "Beagle", "Bulldog", "Chihuahua", "Dachshund", "German Shepherd",
+                            "Golden Retriever", "Labrador Retriever", "Maltese", "Pomeranian",
+                            "Poodle", "Pug", "Rottweiler", "Shih Tzu", "Siberian Husky", "Welsh Corgi", "Others"].map((breed) => (
+                            <option key={breed} value={breed}>{breed}</option>
+                          ))}
+                        </select>
+                      ) : formData.petType === "Cat" ? (
+                        <select
+                          id="breed"
+                          name="breed"
+                          value={formData.breed}
+                          onChange={handleChange}
+                          className="w-full px-3 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-300"
+                          required
+                        >
+                          <option value="">Select cat breed</option>
+                          {["Unknown", "Abyssinian", "Bengal", "Burmese", "Persian", "Puspin",
+                            "Ragdoll", "Russian Blue", "Scottish Fold", "Siamese", "Sphynx", "Others"].map((breed) => (
+                            <option key={breed} value={breed}>{breed}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <select
+                          id="breed"
+                          name="breed"
+                          disabled
+                          className="w-full px-3 py-1.5 border border-gray-300 rounded-md bg-gray-100 text-gray-400"
+                        >
+                          <option value="">Please select pet type first</option>
+                        </select>
+                      )}
                       </div>
                       <div>
                         <label
@@ -425,22 +454,21 @@ const PetsAdoption = () => {
                         </select>
                       </div>
                       <div>
-                        <label
-                          htmlFor="petType"
-                          className="block text-gray-700 font-medium mb-1"
-                        >
-                          Pet Type
-                        </label>
-                        <select
-                          id="petType"
-                          name="petType"
-                          value={formData.petType}
-                          onChange={handleChange}
-                          className="w-full px-3 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-300"
-                        >
-                          <option value="Dog">Dog</option>
-                          <option value="Cat">Cat</option>
-                        </select>
+                      <label htmlFor="petType" className="block text-sm font-medium text-gray-700">
+                        Pet Type
+                      </label>
+                      <select
+                        id="petType"
+                        name="petType"
+                        value={formData.petType}
+                        onChange={handleChange}
+                        className="w-full px-3 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-300"
+                        required
+                      >
+                        <option value="">Select pet type</option>
+                        <option value="Dog">Dog</option>
+                        <option value="Cat">Cat</option>
+                      </select>
                       </div>
                     </div>
 

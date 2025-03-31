@@ -4,6 +4,12 @@ import { db } from "../firebase";
 import { doc, getDoc } from "firebase/firestore";
 import AppSideBar from '../components/AppSideBar';
 import { updateDoc, serverTimestamp, setDoc, collection, query, where, getDocs, addDoc,deleteDoc} from "firebase/firestore";
+import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import L from "leaflet";
+import 'leaflet/dist/leaflet.css';
+import iconUrl from 'leaflet/dist/images/marker-icon.png';
+import iconRetinaUrl from 'leaflet/dist/images/marker-icon-2x.png';
+import shadowUrl from 'leaflet/dist/images/marker-shadow.png';
 
 const ViewProfile = () => {
   const { collectionName, id } = useParams();
@@ -13,8 +19,22 @@ const ViewProfile = () => {
   const [remarks, setRemarks] = useState("");
   const [personnel, setPersonnel] = useState("");
   const [rescuer, setRescuer] = useState("");
+  const customIcon = L.icon({
+    iconUrl: "https://cdn-icons-png.flaticon.com/128/684/684908.png", // Replace with your preferred icon URL
+    iconSize: [30, 40], // Width and height of the icon
+    iconAnchor: [15, 40], // Anchor point of the icon
+    popupAnchor: [0, -40], // Position of the popup relative to the icon
+  });
 
-
+  useEffect(() => {
+    delete window.L.Icon.Default.prototype._getIconUrl;
+    window.L.Icon.Default.mergeOptions({
+      iconRetinaUrl: iconRetinaUrl,
+      iconUrl: iconUrl,
+      shadowUrl: shadowUrl,
+    });
+  }, []);
+  
   useEffect(() => {
     if (!collectionName || !id) {
       console.error("Invalid collection name or ID");
@@ -298,6 +318,39 @@ const updateReportStatus = async (newStatus, rescuer) => {
   </>
 )}
 
+{typeof pet.latitude === "number" &&
+ typeof pet.longitude === "number" &&
+ pet.locationName && (
+  <div className="mt-6">
+    <h2 className="text-2xl font-semibold mb-2">Pet Location</h2>
+    <div className="h-80 w-full rounded-lg overflow-hidden shadow-md relative">
+      <MapContainer
+        center={[pet.latitude, pet.longitude]}
+        zoom={17}
+        scrollWheelZoom={false}
+        style={{ height: "100%", width: "100%" }}
+        className="rounded-lg"
+        whenCreated={(map) => {
+          // This ensures the map fits the view properly after initialization
+          setTimeout(() => {
+            map.invalidateSize();
+          }, 0);
+        }}
+      >
+        <TileLayer 
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        />
+        <Marker position={[pet.latitude, pet.longitude]} icon={customIcon}>
+          <Popup>
+            <strong>{pet.locationName}</strong>
+          </Popup>
+        </Marker>
+      </MapContainer>
+    </div>
+  </div>
+)}
+
       {/* Found Pet Details */}
       {collectionName === "found" && pet.foundAt && pet.foundBy && pet.foundOn && (
         <div className="mt-6 p-4 bg-green-100 rounded-lg">
@@ -394,35 +447,40 @@ const updateReportStatus = async (newStatus, rescuer) => {
     </div>
 
     {pet.additionalPhotos?.length > 0 && (
-      <div className="mt-6">
-        <h2 className="text-2xl font-semibold mb-2">Additional Photos</h2>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          {pet.additionalPhotos.map((photo, index) => (
-            <img
-              key={index}
-              src={photo}
-              alt={`Additional ${index + 1}`}
-              className="w-full h-70 object-cover rounded-md shadow cursor-pointer"
-              onClick={() => window.open(photo, "_blank")}
-            />
-          ))}
+  <div className="mt-6">
+    <h2 className="text-2xl font-semibold mb-2">Additional Photos</h2>
+    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+      {pet.additionalPhotos.map((photo, index) => (
+        <div 
+          key={index} 
+          className="relative aspect-square bg-gray-100 rounded-md shadow overflow-hidden"
+        >
+          <img
+            src={photo}
+            alt={`Additional ${index + 1}`}
+            className="w-full h-full object-contain p-1 cursor-pointer"
+            onClick={() => window.open(photo, "_blank")}
+          />
         </div>
-      </div>
-    )}
+      ))}
+    </div>
+  </div>
+)}
 
     <div className="mt-6">
       <h2 className="text-2xl font-semibold mb-2">Medical Information</h2>
-      <div className="flex space-x-4">
+      <div className="flex space-x-4 overflow-x-auto py-2"> {/* Added overflow and padding */}
         {["medicalRecords", "spayCertificate", "vaccinationRecords"].map(
           (field) =>
             pet[field] && (
-              <img
-                key={field}
-                src={pet[field]}
-                alt={field}
-                className="w-full h-60 object-cover rounded-md shadow cursor-pointer"
-                onClick={() => window.open(pet[field], "_blank")}
-              />
+              <div key={field} className="flex-shrink-0 w-64 h-64 bg-gray-100 rounded-md shadow overflow-hidden"> {/* Container div */}
+                <img
+                  src={pet[field]}
+                  alt={field}
+                  className="w-full h-full object-contain p-2 cursor-pointer"
+                  onClick={() => window.open(pet[field], "_blank")}
+                />
+              </div>
             )
         )}
       </div>
