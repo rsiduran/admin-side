@@ -8,10 +8,16 @@ import {
   doc,
   updateDoc,
   orderBy,
-  query
+  query,
 } from "firebase/firestore";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faEye, faEdit } from "@fortawesome/free-solid-svg-icons";
+import {
+  faEye,
+  faEdit,
+  faFilter,
+  faTimes,
+  faPlus,
+} from "@fortawesome/free-solid-svg-icons";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
@@ -22,8 +28,10 @@ const storage = getStorage();
 const PetsAdoption = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [showModal, setShowModal] = useState(false); // Modal visibility state
+  const [showModal, setShowModal] = useState(false);
   const [editingPetId, setEditingPetId] = useState(null);
+
+  // Form state
   const [formData, setFormData] = useState({
     name: "",
     age: "0-11 months",
@@ -31,13 +39,77 @@ const PetsAdoption = () => {
     petPicture: null,
     additionalPhotos: [],
     description: "",
-    gender: "Male", // Default value
+    gender: "Male",
     medicalRecords: null,
     spayCertificate: null,
     vaccinationRecords: null,
-    size: "Small", // Default value
-    petType: "Dog", // Default value
+    size: "Small",
+    petType: "Dog",
   });
+
+  // Filter states
+  const [adoptionRecords, setAdoptionRecords] = useState([]);
+  const [adoptedRecords, setAdoptedRecords] = useState([]);
+  const [adoptionSearch, setAdoptionSearch] = useState("");
+  const [adoptedSearch, setAdoptedSearch] = useState("");
+  const [adoptionPage, setAdoptionPage] = useState(1);
+  const [adoptedPage, setAdoptedPage] = useState(1);
+  const rowsPerPage = 5;
+
+  // Column filters
+  const [adoptionFilters, setAdoptionFilters] = useState({
+    name: "",
+    breed: "",
+    petType: "",
+    size: "",
+    showFilters: false,
+  });
+
+  const [adoptedFilters, setAdoptedFilters] = useState({
+    name: "",
+    breed: "",
+    petType: "",
+    size: "",
+    showFilters: false,
+  });
+
+  // Breed options by pet type
+  const breedsByType = {
+    Dog: [
+      "Unknown",
+      "Aspin",
+      "Beagle",
+      "Bulldog",
+      "Chihuahua",
+      "Dachshund",
+      "German Shepherd",
+      "Golden Retriever",
+      "Labrador Retriever",
+      "Maltese",
+      "Pomeranian",
+      "Poodle",
+      "Pug",
+      "Rottweiler",
+      "Shih Tzu",
+      "Siberian Husky",
+      "Welsh Corgi",
+      "Others",
+    ],
+    Cat: [
+      "Unknown",
+      "Abyssinian",
+      "Bengal",
+      "Burmese",
+      "Persian",
+      "Puspin",
+      "Ragdoll",
+      "Russian Blue",
+      "Scottish Fold",
+      "Siamese",
+      "Sphynx",
+      "Others",
+    ],
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -46,11 +118,11 @@ const PetsAdoption = () => {
 
   const handleFileChange = (e) => {
     const { name, files } = e.target;
-  
+
     if (name === "additionalPhotos") {
       setFormData((prev) => ({
         ...prev,
-        additionalPhotos: [...files], // Store the selected files as an array
+        additionalPhotos: [...files],
       }));
     } else {
       setFormData((prev) => ({
@@ -59,52 +131,50 @@ const PetsAdoption = () => {
       }));
     }
   };
-  
+
   const uploadFile = async (file, folder) => {
-    if (!file) {
-      return null;
-    }
+    if (!file) return null;
     const storageRef = ref(storage, `${folder}/${file.name}`);
     const snapshot = await uploadBytes(storageRef, file);
-    const downloadURL = await getDownloadURL(snapshot.ref);
-    return downloadURL;
+    return await getDownloadURL(snapshot.ref);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    console.log("Submitting form data:", formData);
-  
+
     try {
-      const petPictureURL = formData.petPicture instanceof File
-        ? await uploadFile(formData.petPicture, "petPictures")
-        : formData.petPicture;
-  
-      // Ensure all additional photos are uploaded
-      const additionalPhotosURLs = await Promise.all(
-        formData.additionalPhotos.map(async (file) =>
-          file instanceof File ? await uploadFile(file, "additionalPhotos") : file
-        )
-      );
-  
-      const medicalRecordsURL = formData.medicalRecords instanceof File
-        ? await uploadFile(formData.medicalRecords, "medicalRecords")
-        : formData.medicalRecords;
-  
-      const spayCertificateURL = formData.spayCertificate instanceof File
-        ? await uploadFile(formData.spayCertificate, "spayCertificates")
-        : formData.spayCertificate;
-  
-      const vaccinationRecordsURL = formData.vaccinationRecords instanceof File
-        ? await uploadFile(formData.vaccinationRecords, "vaccinationRecords")
-        : formData.vaccinationRecords;
-  
+      // Upload all files
+      const [petPictureURL, ...additionalPhotosURLs] = await Promise.all([
+        formData.petPicture instanceof File
+          ? uploadFile(formData.petPicture, "petPictures")
+          : formData.petPicture,
+        ...formData.additionalPhotos.map((file) =>
+          file instanceof File ? uploadFile(file, "additionalPhotos") : file
+        ),
+      ]);
+
+      const medicalRecordsURL =
+        formData.medicalRecords instanceof File
+          ? await uploadFile(formData.medicalRecords, "medicalRecords")
+          : formData.medicalRecords;
+
+      const spayCertificateURL =
+        formData.spayCertificate instanceof File
+          ? await uploadFile(formData.spayCertificate, "spayCertificates")
+          : formData.spayCertificate;
+
+      const vaccinationRecordsURL =
+        formData.vaccinationRecords instanceof File
+          ? await uploadFile(formData.vaccinationRecords, "vaccinationRecords")
+          : formData.vaccinationRecords;
+
       const petData = {
         name: formData.name,
         age: formData.age,
         breed: formData.breed,
         petPicture: petPictureURL,
-        additionalPhotos: additionalPhotosURLs, // Ensure this is an array of URLs
+        additionalPhotos: additionalPhotosURLs,
         description: formData.description,
         gender: formData.gender,
         medicalRecords: medicalRecordsURL,
@@ -114,7 +184,7 @@ const PetsAdoption = () => {
         petType: formData.petType,
         timestamp: new Date(),
       };
-  
+
       if (editingPetId) {
         await updateDoc(doc(db, "adoption", editingPetId), petData);
         toast.success("Pet updated successfully!");
@@ -122,7 +192,8 @@ const PetsAdoption = () => {
         await addDoc(collection(db, "adoption"), petData);
         toast.success("Pet added successfully!");
       }
-  
+
+      // Reset form and fetch updated records
       setShowModal(false);
       setEditingPetId(null);
       setFormData({
@@ -139,6 +210,7 @@ const PetsAdoption = () => {
         size: "Small",
         petType: "Dog",
       });
+      fetchRecords();
     } catch (error) {
       console.error(error);
       toast.error("An error occurred!");
@@ -156,107 +228,181 @@ const PetsAdoption = () => {
       additionalPhotos: pet.additionalPhotos ?? [],
       description: pet.description ?? "",
       gender: pet.gender ?? "Male",
-      medicalRecords: pet.medicalRecords ?? null, // Corrected
-      spayCertificate: pet.spayCertificate ?? null, // Corrected
-      vaccinationRecords: pet.vaccinationRecords ?? null, // Corrected
+      medicalRecords: pet.medicalRecords ?? null,
+      spayCertificate: pet.spayCertificate ?? null,
+      vaccinationRecords: pet.vaccinationRecords ?? null,
       size: pet.size ?? "Small",
       petType: pet.petType ?? "Dog",
     });
     setEditingPetId(pet.id);
     setShowModal(true);
-
-    setEditingPetId(pet.id);
-    setShowModal(true);
   };
 
-  const [adoptionRecords, setAdoptionRecords] = useState([]);
-  const [adoptedRecords, setAdoptedRecords] = useState([]);
-  const [adoptionSearch, setAdoptionSearch] = useState("");
-  const [adoptedSearch, setAdoptedSearch] = useState("");
-  const [adoptionPage, setAdoptionPage] = useState(1);
-  const [adoptedPage, setAdoptedPage] = useState(1);
-  const rowsPerPage = 5;
+  const fetchRecords = async () => {
+    try {
+      const [adoptionQuery, adoptedQuery] = await Promise.all([
+        getDocs(
+          query(collection(db, "adoption"), orderBy("timestamp", "desc"))
+        ),
+        getDocs(query(collection(db, "adopted"), orderBy("timestamp", "desc"))),
+      ]);
+
+      setAdoptionRecords(
+        adoptionQuery.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+          timestamp: doc.data()?.timestamp?.toDate().toLocaleString() || "N/A",
+        }))
+      );
+
+      setAdoptedRecords(
+        adoptedQuery.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+          timestamp: doc.data()?.timestamp?.toDate().toLocaleString() || "N/A",
+        }))
+      );
+    } catch (error) {
+      console.error("Error fetching records:", error);
+      toast.error("Failed to load records");
+    }
+  };
 
   useEffect(() => {
-    const fetchAdoptionRecords = async () => {
-      try {
-        const adoptionQuery = query(
-          collection(db, "adoption"),
-          orderBy("timestamp", "desc")
-        );
-        const querySnapshot = await getDocs(adoptionQuery);
-        const data = querySnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-          timestamp: doc.data()?.timestamp
-            ? new Date(doc.data().timestamp.seconds * 1000).toLocaleString()
-            : "N/A",
-        }));
-        setAdoptionRecords(data);
-      } catch (error) {
-        console.error("Error fetching adoption records:", error);
-      }
-    };
-    
-    const fetchAdoptedRecords = async () => {
-      try {
-        const adoptedQuery = query(
-          collection(db, "adopted"),
-          orderBy("timestamp", "desc")
-        );
-        const querySnapshot = await getDocs(adoptedQuery);
-        const data = querySnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-          timestamp: doc.data()?.timestamp
-            ? new Date(doc.data().timestamp.seconds * 1000).toLocaleString()
-            : "N/A",
-        }));
-        setAdoptedRecords(data);
-      } catch (error) {
-        console.error("Error fetching adopted records:", error);
-      }
-    };
-
-    fetchAdoptionRecords();
-    fetchAdoptedRecords();
+    fetchRecords();
   }, []);
 
-  // Filtering and Pagination for Adoption Table
-  const filteredAdoption = adoptionRecords.filter((record) =>
-    Object.keys(record).some((key) =>
-      record[key]
-        ?.toString()
-        .toLowerCase()
-        .includes(adoptionSearch.toLowerCase())
-    )
-  );
-  const adoptionIndexOfLastRow = adoptionPage * rowsPerPage;
-  const adoptionIndexOfFirstRow = adoptionIndexOfLastRow - rowsPerPage;
-  const adoptionCurrentRows = filteredAdoption.slice(
-    adoptionIndexOfFirstRow,
-    adoptionIndexOfLastRow
-  );
+  // Filter and pagination logic
+  const filterRecords = (records, searchTerm, filters) => {
+    return records.filter((record) => {
+      const matchesSearch =
+        searchTerm === "" ||
+        Object.values(record).some((value) =>
+          value?.toString().toLowerCase().includes(searchTerm.toLowerCase())
+        );
 
-  const adoptionTotalPages = Math.ceil(filteredAdoption.length / rowsPerPage);
+      const matchesName =
+        filters.name === "" ||
+        (record.name &&
+          record.name.toLowerCase().includes(filters.name.toLowerCase()));
 
-  // Filtering and Pagination for Adopted Table
-  const filteredAdopted = adoptedRecords.filter((record) =>
-    Object.keys(record).some((key) =>
-      record[key]
-        ?.toString()
-        .toLowerCase()
-        .includes(adoptedSearch.toLowerCase())
-    )
-  );
-  const adoptedIndexOfLastRow = adoptedPage * rowsPerPage;
-  const adoptedIndexOfFirstRow = adoptedIndexOfLastRow - rowsPerPage;
-  const adoptedCurrentRows = filteredAdopted.slice(
-    adoptedIndexOfFirstRow,
-    adoptedIndexOfLastRow
-  );
+      const matchesBreed =
+        filters.breed === "" ||
+        (record.breed &&
+          record.breed.toLowerCase().includes(filters.breed.toLowerCase()));
 
-  const adoptedTotalPages = Math.ceil(filteredAdopted.length / rowsPerPage);
+      const matchesPetType =
+        filters.petType === "" ||
+        (record.petType &&
+          record.petType.toLowerCase() === filters.petType.toLowerCase());
+
+      const matchesSize =
+        filters.size === "" ||
+        (record.size &&
+          record.size.toLowerCase() === filters.size.toLowerCase());
+
+      return (
+        matchesSearch &&
+        matchesName &&
+        matchesBreed &&
+        matchesPetType &&
+        matchesSize
+      );
+    });
+  };
+
+  const paginateRecords = (records, page) => {
+    const indexOfLastRow = page * rowsPerPage;
+    const indexOfFirstRow = indexOfLastRow - rowsPerPage;
+    return {
+      currentRows: records.slice(indexOfFirstRow, indexOfLastRow),
+      totalPages: Math.ceil(records.length / rowsPerPage),
+    };
+  };
+
+  const filteredAdoption = filterRecords(
+    adoptionRecords,
+    adoptionSearch,
+    adoptionFilters
+  );
+  const { currentRows: adoptionCurrentRows, totalPages: adoptionTotalPages } =
+    paginateRecords(filteredAdoption, adoptionPage);
+
+  const filteredAdopted = filterRecords(
+    adoptedRecords,
+    adoptedSearch,
+    adoptedFilters
+  );
+  const { currentRows: adoptedCurrentRows, totalPages: adoptedTotalPages } =
+    paginateRecords(filteredAdopted, adoptedPage);
+
+  const resetFilters = (isAdoption) => {
+    if (isAdoption) {
+      setAdoptionFilters({
+        name: "",
+        breed: "",
+        petType: "",
+        size: "",
+        showFilters: false,
+      });
+      setAdoptionSearch("");
+    } else {
+      setAdoptedFilters({
+        name: "",
+        breed: "",
+        petType: "",
+        size: "",
+        showFilters: false,
+      });
+      setAdoptedSearch("");
+    }
+  };
+
+  const getAllBreeds = () => {
+    const allBreeds = new Set();
+    adoptionRecords.forEach((pet) => {
+      if (pet.breed) allBreeds.add(pet.breed);
+    });
+    adoptedRecords.forEach((pet) => {
+      if (pet.breed) allBreeds.add(pet.breed);
+    });
+    return Array.from(allBreeds).sort();
+  };
+
+  // Add these to your existing state declarations
+  const [availableBreeds, setAvailableBreeds] = useState([]);
+
+  // Update available breeds when pet type changes
+  useEffect(() => {
+    if (adoptionFilters.petType && breedsByType[adoptionFilters.petType]) {
+      setAvailableBreeds(breedsByType[adoptionFilters.petType]);
+      // Reset breed filter if it's not compatible with the new pet type
+      if (
+        !breedsByType[adoptionFilters.petType].includes(adoptionFilters.breed)
+      ) {
+        setAdoptionFilters((prev) => ({ ...prev, breed: "" }));
+      }
+    } else {
+      setAvailableBreeds([]);
+      setAdoptionFilters((prev) => ({ ...prev, breed: "" }));
+    }
+  }, [adoptionFilters.petType]);
+
+  const [availableAdoptedBreeds, setAvailableAdoptedBreeds] = useState([]);
+
+  useEffect(() => {
+    if (adoptedFilters.petType && breedsByType[adoptedFilters.petType]) {
+      setAvailableAdoptedBreeds(breedsByType[adoptedFilters.petType]);
+      if (
+        !breedsByType[adoptedFilters.petType].includes(adoptedFilters.breed)
+      ) {
+        setAdoptedFilters((prev) => ({ ...prev, breed: "" }));
+      }
+    } else {
+      setAvailableAdoptedBreeds([]);
+      setAdoptedFilters((prev) => ({ ...prev, breed: "" }));
+    }
+  }, [adoptedFilters.petType]);
 
   return (
     <div className="flex flex-col lg:flex-row">
@@ -293,7 +439,12 @@ const PetsAdoption = () => {
                       alignItems: "center",
                     }}
                   >
-                    <ClipLoader size={80} width={5} color="#4fa94d" loading={loading} />
+                    <ClipLoader
+                      size={80}
+                      width={5}
+                      color="#4fa94d"
+                      loading={loading}
+                    />
                   </div>
                 ) : (
                   <form
@@ -583,13 +734,134 @@ const PetsAdoption = () => {
               </div>
             </div>
           )}
-          <input
-            type="text"
-            placeholder="Search adoption records..."
-            value={adoptionSearch}
-            onChange={(e) => setAdoptionSearch(e.target.value)}
-            className="mb-4 w-64 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring focus:ring-blue-300"
-          />
+          {/* Search and Filter Controls */}
+          <div className="mb-4 flex flex-col space-y-4">
+            <div className="flex flex-wrap gap-4">
+              <input
+                type="text"
+                placeholder="Search adoption records..."
+                value={adoptionSearch}
+                onChange={(e) => {
+                  setAdoptionSearch(e.target.value);
+                  setAdoptionPage(1);
+                }}
+                className="w-64 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring focus:ring-blue-300"
+              />
+              <button
+                onClick={() =>
+                  setAdoptionFilters((prev) => ({
+                    ...prev,
+                    showFilters: !prev.showFilters,
+                  }))
+                }
+                className={`px-4 py-2 rounded-lg shadow flex items-center ${
+                  adoptionFilters.showFilters
+                    ? "bg-blue-500 text-white hover:bg-blue-600"
+                    : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                }`}
+              >
+                <FontAwesomeIcon
+                  icon={adoptionFilters.showFilters ? faTimes : faFilter}
+                  className="mr-2"
+                />
+                {adoptionFilters.showFilters ? "Hide Filters" : "Show Filters"}
+              </button>
+              <button
+                onClick={() => resetFilters(true)}
+                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg shadow hover:bg-gray-300"
+              >
+                Reset Filters
+              </button>
+            </div>
+
+            {/* Column Filters */}
+            {adoptionFilters.showFilters && (
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Name
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Filter by name..."
+                    value={adoptionFilters.name}
+                    onChange={(e) =>
+                      setAdoptionFilters((prev) => ({
+                        ...prev,
+                        name: e.target.value,
+                      }))
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Pet Type
+                  </label>
+                  <select
+                    value={adoptionFilters.petType}
+                    onChange={(e) =>
+                      setAdoptionFilters((prev) => ({
+                        ...prev,
+                        petType: e.target.value,
+                      }))
+                    }
+                    className="w-full px-3 py-3 border border-gray-300 rounded-md shadow-sm"
+                  >
+                    <option value="">All Types</option>
+                    <option value="Dog">Dog</option>
+                    <option value="Cat">Cat</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Breed
+                  </label>
+                  <select
+                    value={adoptionFilters.breed}
+                    onChange={(e) =>
+                      setAdoptionFilters((prev) => ({
+                        ...prev,
+                        breed: e.target.value,
+                      }))
+                    }
+                    disabled={!adoptionFilters.petType}
+                    className="w-full px-3 py-3 border border-gray-300 rounded-md shadow-sm disabled:opacity-50"
+                  >
+                    <option value="">All Breeds</option>
+                    {availableBreeds.map((breed) => (
+                      <option key={breed} value={breed}>
+                        {breed}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Size
+                  </label>
+                  <select
+                    value={adoptionFilters.size}
+                    onChange={(e) =>
+                      setAdoptionFilters((prev) => ({
+                        ...prev,
+                        size: e.target.value,
+                      }))
+                    }
+                    className="w-full px-3 py-3 border border-gray-300 rounded-md shadow-sm"
+                  >
+                    <option value="">All Sizes</option>
+                    <option value="Small">Small</option>
+                    <option value="Medium">Medium</option>
+                    <option value="Large">Large</option>
+                  </select>
+                </div>
+              </div>
+            )}
+          </div>
           <div className="overflow-x-auto shadow-xl border border-gray-300 rounded-lg">
             <table className="table-auto w-full text-sm text-gray-800">
               <thead className="bg-gray-100 text-gray-700 uppercase">
@@ -679,13 +951,136 @@ const PetsAdoption = () => {
           <h2 className="text-2xl font-bold text-gray-800 mb-4">
             Adopted Pets
           </h2>
-          <input
-            type="text"
-            placeholder="Search adopted records..."
-            value={adoptedSearch}
-            onChange={(e) => setAdoptedSearch(e.target.value)}
-            className="mb-4 w-64 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring focus:ring-blue-300"
-          />
+          {/* Search and Filter Controls */}
+          <div className="mb-4 flex flex-col space-y-4">
+            <div className="flex flex-wrap gap-4">
+              <input
+                type="text"
+                placeholder="Search adopted records..."
+                value={adoptedSearch}
+                onChange={(e) => {
+                  setAdoptedSearch(e.target.value);
+                  setAdoptedPage(1);
+                }}
+                className="w-64 px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring focus:ring-blue-300"
+              />
+              <button
+                onClick={() =>
+                  setAdoptedFilters((prev) => ({
+                    ...prev,
+                    showFilters: !prev.showFilters,
+                  }))
+                }
+                className={`px-4 py-2 rounded-lg shadow flex items-center ${
+                  adoptedFilters.showFilters
+                    ? "bg-blue-500 text-white hover:bg-blue-600"
+                    : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                }`}
+              >
+                <FontAwesomeIcon
+                  icon={adoptedFilters.showFilters ? faTimes : faFilter}
+                  className="mr-2"
+                />
+                {adoptedFilters.showFilters ? "Hide Filters" : "Show Filters"}
+              </button>
+              <button
+                onClick={() => resetFilters(false)}
+                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg shadow hover:bg-gray-300"
+              >
+                Reset Filters
+              </button>
+            </div>
+
+            {/* Column Filters */}
+            {adoptedFilters.showFilters && (
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Name
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Filter by name..."
+                    value={adoptedFilters.name}
+                    onChange={(e) =>
+                      setAdoptedFilters((prev) => ({
+                        ...prev,
+                        name: e.target.value,
+                      }))
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
+                  />
+                </div>
+
+                {/* Pet Type Filter for Adopted Pets */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Pet Type
+                  </label>
+                  <select
+                    value={adoptedFilters.petType}
+                    onChange={(e) =>
+                      setAdoptedFilters((prev) => ({
+                        ...prev,
+                        petType: e.target.value,
+                      }))
+                    }
+                    className="w-full px-3 py-3 border border-gray-300 rounded-md shadow-sm"
+                  >
+                    <option value="">All Types</option>
+                    <option value="Dog">Dog</option>
+                    <option value="Cat">Cat</option>
+                  </select>
+                </div>
+
+                {/* Breed Filter for Adopted Pets */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Breed
+                  </label>
+                  <select
+                    value={adoptedFilters.breed}
+                    onChange={(e) =>
+                      setAdoptedFilters((prev) => ({
+                        ...prev,
+                        breed: e.target.value,
+                      }))
+                    }
+                    disabled={!adoptedFilters.petType}
+                    className="w-full px-3 py-3 border border-gray-300 rounded-md shadow-sm disabled:opacity-50"
+                  >
+                    <option value="">All Breeds</option>
+                    {availableAdoptedBreeds.map((breed) => (
+                      <option key={breed} value={breed}>
+                        {breed}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Size
+                  </label>
+                  <select
+                    value={adoptedFilters.size}
+                    onChange={(e) =>
+                      setAdoptedFilters((prev) => ({
+                        ...prev,
+                        size: e.target.value,
+                      }))
+                    }
+                    className="w-full px-3 py-3 border border-gray-300 rounded-md shadow-sm"
+                  >
+                    <option value="">All Sizes</option>
+                    <option value="Small">Small</option>
+                    <option value="Medium">Medium</option>
+                    <option value="Large">Large</option>
+                  </select>
+                </div>
+              </div>
+            )}
+          </div>
           <div className="overflow-x-auto shadow-xl border border-gray-300 rounded-lg">
             <table className="table-auto w-full text-sm text-gray-800">
               <thead className="bg-gray-100 text-gray-700 uppercase">
