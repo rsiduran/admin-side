@@ -446,31 +446,32 @@ typeof pet.latitude === "number" &&
       </div>
     </div>
 
-    {pet.additionalPhotos?.length > 0 && (
-  <div className="mt-6">
-    <h2 className="text-2xl font-semibold mb-2">Additional Photos</h2>
-    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-      {pet.additionalPhotos.map((photo, index) => (
-        <div 
-          key={index} 
-          className="relative aspect-square bg-gray-100 rounded-md shadow overflow-hidden"
-        >
-          <img
-            src={photo}
-            alt={`Additional ${index + 1}`}
-            className="w-full h-full object-contain p-1 cursor-pointer"
-            onClick={() => window.open(photo, "_blank")}
-          />
+    {pet.additionalPhotos && pet.additionalPhotos.length > 0 && (
+      <div className="mt-6">
+        <h2 className="text-2xl font-semibold mb-2">Media</h2>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          {pet.additionalPhotos.map((item, index) => (
+            <div key={index} className="relative w-full h-60 rounded-md shadow overflow-hidden">
+              {item.type === "image" ? (
+                <img
+                  src={item.uri}
+                  alt={`Media ${index + 1}`}
+                  className="w-full h-full object-cover"
+                />
+              )
+              : (
+                <p className="text-sm text-red-500">Unsupported media type</p>
+              )}
+            </div>
+          ))}
         </div>
-      ))}
-    </div>
-  </div>
-)}
+      </div>
+    )}
 
     <div className="mt-6">
       <h2 className="text-2xl font-semibold mb-2">Medical Information</h2>
       <div className="flex space-x-4 overflow-x-auto py-2"> {/* Added overflow and padding */}
-        {["medicalRecords", "spayCertificate", "vaccinationRecords"].map(
+        {["medical", "spay", "vaccination"].map(
           (field) =>
             pet[field] && (
               <div key={field} className="flex-shrink-0 w-64 h-64 bg-gray-100 rounded-md shadow overflow-hidden"> {/* Container div */}

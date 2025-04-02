@@ -40,9 +40,9 @@ const PetsAdoption = () => {
     additionalPhotos: [],
     description: "",
     gender: "Male",
-    medicalRecords: null,
-    spayCertificate: null,
-    vaccinationRecords: null,
+    medical: null,
+    spay: null,
+    vaccination: null,
     size: "Small",
     petType: "Dog",
   });
@@ -115,76 +115,93 @@ const PetsAdoption = () => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
   };
-
+  
   const handleFileChange = (e) => {
     const { name, files } = e.target;
-
+  
     if (name === "additionalPhotos") {
-      setFormData((prev) => ({
+      const newPhotos = Array.from(files).map(file => ({
+        type: "image",
+        uri: file  // Store File object temporarily, will be replaced with URL on submit
+      }));
+      
+      setFormData(prev => ({
         ...prev,
-        additionalPhotos: [...files],
+        additionalPhotos: [...prev.additionalPhotos, ...newPhotos]
       }));
     } else {
-      setFormData((prev) => ({
+      setFormData(prev => ({
         ...prev,
         [name]: files.length > 0 ? files[0] : null,
       }));
     }
   };
-
+  
   const uploadFile = async (file, folder) => {
     if (!file) return null;
-    const storageRef = ref(storage, `${folder}/${file.name}`);
+    const storageRef = ref(storage, `${folder}/${Date.now()}_${file.name}`);
     const snapshot = await uploadBytes(storageRef, file);
     return await getDownloadURL(snapshot.ref);
   };
-
+  
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-
+  
     try {
-      // Upload all files
-      const [petPictureURL, ...additionalPhotosURLs] = await Promise.all([
-        formData.petPicture instanceof File
-          ? uploadFile(formData.petPicture, "petPictures")
-          : formData.petPicture,
-        ...formData.additionalPhotos.map((file) =>
-          file instanceof File ? uploadFile(file, "additionalPhotos") : file
-        ),
-      ]);
-
-      const medicalRecordsURL =
-        formData.medicalRecords instanceof File
-          ? await uploadFile(formData.medicalRecords, "medicalRecords")
-          : formData.medicalRecords;
-
-      const spayCertificateURL =
-        formData.spayCertificate instanceof File
-          ? await uploadFile(formData.spayCertificate, "spayCertificates")
-          : formData.spayCertificate;
-
-      const vaccinationRecordsURL =
-        formData.vaccinationRecords instanceof File
-          ? await uploadFile(formData.vaccinationRecords, "vaccinationRecords")
-          : formData.vaccinationRecords;
-
+      // Validate required fields
+      if (!formData.petPicture) {
+        toast.error("Please upload a pet picture!");
+        setLoading(false);
+        return;
+      }
+  
+      // Upload pet picture (returns just the URL string)
+      const petPicture = formData.petPicture instanceof File
+        ? await uploadFile(formData.petPicture, "petPictures")
+        : formData.petPicture;
+  
+      // Upload additional photos (structured format)
+      const additionalPhotos = await Promise.all(
+        formData.additionalPhotos.map(async photo => {
+          if (photo.uri instanceof File) {
+            return {
+              type: "image",
+              uri: await uploadFile(photo.uri, "additionalPhotos")
+            };
+          }
+          return photo; // Keep existing photo objects
+        })
+      );
+  
+      // Upload documents (returns just the URL strings)
+      const uploadDocument = async (file, folder) => {
+        if (!file) return null;
+        return file instanceof File ? await uploadFile(file, folder) : file;
+      };
+  
+      const medical = await uploadDocument(formData.medical, "medical");
+      const spay = await uploadDocument(formData.spay, "spay");
+      const vaccination = await uploadDocument(formData.vaccination, "vaccination");
+  
+      // Prepare final data
       const petData = {
         name: formData.name,
         age: formData.age,
         breed: formData.breed,
-        petPicture: petPictureURL,
-        additionalPhotos: additionalPhotosURLs,
+        petPicture, // Just the URL string
+        additionalPhotos: additionalPhotos.filter(photo => photo.uri), // Structured format
         description: formData.description,
         gender: formData.gender,
-        medicalRecords: medicalRecordsURL,
-        spayCertificate: spayCertificateURL,
-        vaccinationRecords: vaccinationRecordsURL,
+        medical, // Just the URL string
+        spay, // Just the URL string
+        vaccination, // Just the URL string
         size: formData.size,
         petType: formData.petType,
-        timestamp: new Date(),
+        timestamp: editingPetId ? formData.timestamp : new Date(),
       };
-
+  
+      // Save to Firestore
       if (editingPetId) {
         await updateDoc(doc(db, "adoption", editingPetId), petData);
         toast.success("Pet updated successfully!");
@@ -192,8 +209,8 @@ const PetsAdoption = () => {
         await addDoc(collection(db, "adoption"), petData);
         toast.success("Pet added successfully!");
       }
-
-      // Reset form and fetch updated records
+  
+      // Reset form
       setShowModal(false);
       setEditingPetId(null);
       setFormData({
@@ -204,9 +221,9 @@ const PetsAdoption = () => {
         additionalPhotos: [],
         description: "",
         gender: "Male",
-        medicalRecords: null,
-        spayCertificate: null,
-        vaccinationRecords: null,
+        medical: null,
+        spay: null,
+        vaccination: null,
         size: "Small",
         petType: "Dog",
       });
@@ -218,26 +235,31 @@ const PetsAdoption = () => {
       setLoading(false);
     }
   };
-
+  
   const handleEdit = (pet) => {
     setFormData({
       name: pet.name ?? "",
       age: pet.age ?? "",
       breed: pet.breed ?? "",
-      petPicture: pet.petPicture ?? null,
-      additionalPhotos: pet.additionalPhotos ?? [],
+      petPicture: pet.petPicture ?? null, // Just the URL string
+      additionalPhotos: Array.isArray(pet.additionalPhotos) 
+        ? pet.additionalPhotos.map(photo => ({
+            type: photo?.type || "image",
+            uri: photo?.uri || null
+          }))
+        : [],
       description: pet.description ?? "",
       gender: pet.gender ?? "Male",
-      medicalRecords: pet.medicalRecords ?? null,
-      spayCertificate: pet.spayCertificate ?? null,
-      vaccinationRecords: pet.vaccinationRecords ?? null,
+      medical: pet.medical ?? null,
+      spay: pet.spay ?? null,
+      vaccination: pet.vaccination ?? null,
       size: pet.size ?? "Small",
       petType: pet.petType ?? "Dog",
+      timestamp: pet.timestamp ?? new Date(),
     });
     setEditingPetId(pet.id);
     setShowModal(true);
   };
-
   const fetchRecords = async () => {
     try {
       const [adoptionQuery, adoptedQuery] = await Promise.all([
@@ -664,15 +686,15 @@ const PetsAdoption = () => {
                         </div>
                         <div>
                           <label
-                            htmlFor="medicalRecords"
+                            htmlFor="medical"
                             className="block text-gray-700 font-medium mb-1"
                           >
                             Medical Records
                           </label>
                           <input
                             type="file"
-                            id="medicalRecords"
-                            name="medicalRecords"
+                            id="medical"
+                            name="medical"
                             onChange={handleFileChange}
                             className="w-full px-3 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-300"
                             accept="image/*"
@@ -680,15 +702,15 @@ const PetsAdoption = () => {
                         </div>
                         <div>
                           <label
-                            htmlFor="spayCertificate"
+                            htmlFor="spay"
                             className="block text-gray-700 font-medium mb-1"
                           >
                             Spay Certificate
                           </label>
                           <input
                             type="file"
-                            id="spayCertificate"
-                            name="spayCertificate"
+                            id="spay"
+                            name="spay"
                             onChange={handleFileChange}
                             className="w-full px-3 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-300"
                             accept="image/*"
@@ -696,15 +718,15 @@ const PetsAdoption = () => {
                         </div>
                         <div>
                           <label
-                            htmlFor="vaccinationRecords"
+                            htmlFor="vaccination"
                             className="block text-gray-700 font-medium mb-1"
                           >
                             Vaccination Records
                           </label>
                           <input
                             type="file"
-                            id="vaccinationRecords"
-                            name="vaccinationRecords"
+                            id="vaccination"
+                            name="vaccination"
                             onChange={handleFileChange}
                             className="w-full px-3 py-1.5 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-300"
                             accept="image/*"
